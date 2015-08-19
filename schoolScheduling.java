@@ -4,10 +4,10 @@ import java.io.*;
 class Student
 {
 	private Subject[] classRequests;
-	private Subject[] assignedClasses; 
+	private Subject[] assignedClasses;
 	private int idNumber;
 	private int gradeLevel;
-	
+
 	public Student(Subject[] requests, int num, int g)
 	{
 		classRequests = requests;
@@ -15,30 +15,30 @@ class Student
 		idNumber = num;
 		gradeLevel = g;
 	}
-	
+
 	public int getId()
 	{
 		return idNumber;
 	}
-	
+
 	public void setPeriod(int n, Subject z)
 	{
 		assignedClasses[n] = z;
 	}
-	
+
 	public Subject[] getSchedule()
 	{
 		return assignedClasses;
 	}
-	
+
 	public Subject[] getRequests()
 	{
 		return classRequests;
 	}
-	
+
 	public int getNumErrors()
 	{
-		int count = assignedClasses.length; 
+		int count = assignedClasses.length;
 		for(int q = 0; q<classRequests.length; q++)
 		{
 			for(int d = 0; d<assignedClasses.length; d++)
@@ -51,7 +51,7 @@ class Student
 		}
 		return count;
 	}
-	
+
 	public String toString()
 	{
 		return "ID Number: " + idNumber + " -- Grade Level: " + gradeLevel + " -- Course Requests: " + Arrays.toString(classRequests);
@@ -63,7 +63,7 @@ class Subject
 	private String name;
 	private int id;
 	private HashMap<Integer,Integer> periodSize;
-	
+
 	public Subject(String s, int n, String[] x)
 	{
 		name = s;
@@ -72,38 +72,38 @@ class Subject
 		for(int a = 0; a<x.length; a++)
 		{
 			String[] nums = x[a].split(";");
-			int period = Integer.parseInt(nums[0]); //Can you declare these 3 variables inside the for loop? Because it works
+			int period = Integer.parseInt(nums[0]);
 			int studentNum = Integer.parseInt(nums[1]);
 			periodSize.put(period,studentNum);
 		}
 	}
-	
+
 	public HashMap<Integer,Integer> getPeriodMap()
 	{
 		return periodSize;
 	}
-	
+
 	public int getIdNum()
 	{
 		return id;
 	}
-	
-	public int getPeriodSize(int y) 
+
+	public int getPeriodSize(int y)
 	{
 		return periodSize.get(y);
 	}
 
-	public void changeNumSpots(int n) 
+	public void changeNumSpots(int n)
 	{
 		if(periodSize.get(n+1)!=0)
 			periodSize.put(n+1,periodSize.get(n+1)-1);
 	}
-	
+
 	public boolean spotsAvailable(int e)
 	{
 		return periodSize.get(e+1)!=0;
 	}
-	
+
 	public String toString()
 	{
 		return name;
@@ -112,8 +112,12 @@ class Subject
 
 public class schoolScheduling
 {
-	static ArrayList<Subject> courses = new ArrayList<Subject>(); //Should I make this and coursePeriods static so I can access them in the scheduler method?
-	static Subject[][] coursePeriods = new Subject[4][courses.size()];	//Should I change how I declared the row or column number?
+	public static final NUMPERIODS = 4;
+
+	static ArrayList<Subject> courses = new ArrayList<Subject>();
+	static Subject[][] coursePeriods = new Subject[NUMPERIODS][courses.size()];
+	// it shouldn't be courses.size() <-> courses.size() is 0 when this is called
+	// instead, you can just do this: coursePeriods = new Subject[NUMPERIODS][]; <- called a 'ragged array'
 	public static void main(String[] args) throws Exception
 	{
 		Scanner dataInput = new Scanner(new File("courseData.txt"));
@@ -127,8 +131,8 @@ public class schoolScheduling
 			Subject newCourse = new Subject(courseName, courseId, courseSize);
 			courses.add(newCourse);
 		}
-			
-		for(int k = 1; k<=coursePeriods.length; k++) 
+
+		for(int k = 1; k<=coursePeriods.length; k++)
 		{
 			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
 				for(int h = 0; h<courses.size(); h++)
@@ -141,7 +145,7 @@ public class schoolScheduling
 				{
 					tempPeriods[t] = availablePeriods.get(t);
 				}
-			coursePeriods[k-1] = tempPeriods;
+			coursePeriods[k-1] = tempPeriods; // this allows your previous code to work and will also work with 'ragged array'
 		}
 
 		Scanner input = new Scanner(new File("studentInfoData.txt"));
@@ -158,7 +162,7 @@ public class schoolScheduling
 			for(int z = 2; z<studentRequests.length; z++)
 			{
 				for(int a = 0; a<courses.size(); a++)
-				{					
+				{
 					if(studentRequests[z] == courses.get(a).getIdNum())
 					{
 						courseRequests[z-2] = courses.get(a);
@@ -170,7 +174,7 @@ public class schoolScheduling
 			System.out.println("ID: " + b.getId() + "\nCourse Requests: " + Arrays.toString(b.getRequests()) + "\nSchedule: " + Arrays.toString(b.getSchedule()) + "\nErrors: " + b.getNumErrors());
 			System.out.println();
 		}
-		
+
 		System.out.println();
 		System.out.println("SPOTS LEFT AFTER MAKING ALL THE SCHEDULES: ");
 		for(int y = 0; y<courses.size(); y++)
@@ -182,15 +186,14 @@ public class schoolScheduling
 			System.out.println();
 		}
 	}
-	
+
 	public static void scheduler(Student t) //Must be static, right?
 	{
 		for(int v = 0; v<courses.size(); v++)
 		{
 			for(int x = 0; x<4; x++)//
 			{
-				if(t.getSchedule()[x]==null && checkCoursePeriods(courses.get(v),x) && courses.get(v).spotsAvailable(x)) //Do I need to take into account if the class is already in the student's schedule? Because results show that no class is repeated in the same schedule
-				{	
+				if(t.getSchedule()[x]==null && checkCoursePeriods(courses.get(v),x) && courses.get(v).spotsAvailable(x))
 					t.setPeriod(x,courses.get(v));
 					courses.get(v).changeNumSpots(x);
 					break;
@@ -198,7 +201,7 @@ public class schoolScheduling
 			}
 		}
 	}
-	
+
 	public static boolean checkCoursePeriods(Subject a, int g)
 	{
 		for(int w = 0; w<coursePeriods[g].length; w++)
