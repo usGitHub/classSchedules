@@ -21,6 +21,11 @@ class Student
 		return idNumber;
 	}
 	
+	public int getGradeLevel()
+	{
+		return gradeLevel;
+	}
+	
 	public void setPeriod(int n, Subject z)
 	{
 		assignedClasses[n] = z;
@@ -114,6 +119,7 @@ public class schoolScheduling
 {
 	static ArrayList<Subject> courses = new ArrayList<Subject>(); //Should I make this and coursePeriods static so I can access them in the scheduler method?
 	static Subject[][] coursePeriods = new Subject[4][courses.size()];	//Should I change how I declared the row or column number?
+	static ArrayList<Student> students = new ArrayList<Student>();
 	static int totalErrors = 0;
 	static int numStudents = 0;
 	static int schedulesWithErrors = 0;
@@ -169,12 +175,33 @@ public class schoolScheduling
 				}
 			}
 			Student b = new Student(courseRequests, idNum, gradeNum);
-			scheduler(b);
-			totalErrors += b.getNumErrors();
+			students.add(b);
 			numStudents++;
-			if(b.getNumErrors()>0)
+		}
+		
+		int first;
+     	for (int i = students.size() - 1; i > 0; i -- )  
+     	{
+		          first = 0;  
+		          for(int j = 1; j <= i; j ++)   
+		          {
+		               if(students.get(j).getGradeLevel() < students.get(first).getGradeLevel() )         
+		                 first = j;
+		          }
+		          Student temp = students.get(first);   
+		          students.set(first, students.get(i));
+		          students.set(i, temp);
+		}           
+	
+		
+		for(int a = 0; a<students.size(); a++)
+		{
+			Student s = students.get(a);
+			scheduler(s);
+			totalErrors += s.getNumErrors();
+			if(s.getNumErrors()>0)
 				schedulesWithErrors++;
-			System.out.println("ID: " + b.getId() + "\nCourse Requests: " + Arrays.toString(b.getRequests()) + "\nSchedule: " + Arrays.toString(b.getSchedule()) + "\nErrors: " + b.getNumErrors());
+			System.out.println("ID: " + s.getId() + "\nGrade Level: " + s.getGradeLevel() + "\nCourse Requests: " + Arrays.toString(s.getRequests()) + "\nSchedule: " + Arrays.toString(s.getSchedule()) + "\nErrors: " + s.getNumErrors());
 			System.out.println();
 		}
 		
@@ -192,7 +219,8 @@ public class schoolScheduling
 		System.out.println("The Percent Error (The percent of schedules with 1 or more errors): " + overallPercentError() + " %");
 	}
 	
-	public static void scheduler(Student t) //Must be static, right?
+	
+	/*public static void scheduler(Student t) //Must be static, right?
 	{
 		for(int v = 0; v<courses.size(); v++)
 		{
@@ -206,6 +234,25 @@ public class schoolScheduling
 				}
 			}
 		}
+	}*/
+	
+	public static void scheduler(Student t)
+	{
+		Subject[] requests = t.getRequests();
+		for(int x = 0; x<requests.length; x++)
+		{
+			int pos = courses.indexOf(requests[x]);
+			for(int a = 0; a<4; a++)
+			{
+				if(t.getSchedule()[a] == null && scheduleNotContainsClass(courses.get(pos), t) && checkCoursePeriods(courses.get(pos), a) && courses.get(pos).spotsAvailable(a))
+				{
+					t.setPeriod(a, courses.get(pos));
+					courses.get(pos).changeNumSpots(a);
+					break;
+				}
+			}
+		}
+			
 	}
 	
 	public static boolean checkCoursePeriods(Subject a, int g)
@@ -216,9 +263,20 @@ public class schoolScheduling
 		return false;
 	}
 	
-	public static int countAvgNumErrors()
+	public static boolean scheduleNotContainsClass(Subject s, Student x)
 	{
-		int avg = totalErrors/numStudents;
+		Subject[] schedule = x.getSchedule();
+		for(int a = 0; a<schedule.length; a++)
+		{
+			if(schedule[a] == s)
+				return false;
+		}
+		return true;
+	}
+	
+	public static double countAvgNumErrors()
+	{
+		double avg = totalErrors/numStudents;
 		return avg;
 	}
 	
