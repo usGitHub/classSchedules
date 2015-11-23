@@ -1,19 +1,26 @@
 import java.util.*;
 import java.io.*;
 
-class Student
+class Student implements Comparator<Student>
 {
 	private Subject[] classRequests;
 	private Subject[] assignedClasses; 
 	private int idNumber;
 	private int gradeLevel;
 	
+	public Student()
+	{}
 	public Student(Subject[] requests, int num, int g)
 	{
 		classRequests = requests;
 		assignedClasses = new Subject[4];
 		idNumber = num;
 		gradeLevel = g;
+	}
+	
+	public int compare(Student s, Student s1)
+	{
+		return s1.gradeLevel - s.gradeLevel;
 	}
 	
 	public int getId()
@@ -59,7 +66,7 @@ class Student
 	
 	public String toString()
 	{
-		return "ID Number: " + idNumber + " -- Grade Level: " + gradeLevel + " -- Course Requests: " + Arrays.toString(classRequests);
+		return getNumErrors() + "";//"ID Number: " + idNumber + " -- Grade Level: " + gradeLevel + " -- Course Requests: " + Arrays.toString(classRequests);
 	}
 }
 
@@ -115,6 +122,45 @@ class Subject
 	}
 }
 
+class Order
+{
+	private ArrayList<Student> schedulingOrder;
+	private double fitness;
+	
+	public Order(ArrayList<Student> o)
+	{
+		schedulingOrder = o;
+		fitness = assignFitness();
+	}
+	
+	public double getFitness()
+	{
+		return fitness;
+	}
+	
+	public double assignFitness()
+	{
+		int errorsTotal = 0;
+		int scheduleNumWithErrors = 0;
+		for(int a = 0; a<schedulingOrder.size(); a++)
+		{
+			Student s = schedulingOrder.get(a);
+			schoolScheduling.scheduler(s);
+			errorsTotal += s.getNumErrors();
+			if(s.getNumErrors()>0)
+				scheduleNumWithErrors++;
+		}
+		double decimError = (double)scheduleNumWithErrors/schedulingOrder.size();
+		double pError = decimError * 100;
+		return pError;
+	}
+	
+	public String toString()
+	{
+		return "Fitness: " + fitness; // + " Order: " + schedulingOrder;
+	}
+}
+
 public class schoolScheduling
 {
 	static ArrayList<Subject> courses = new ArrayList<Subject>(); //Should I make this and coursePeriods static so I can access them in the scheduler method?
@@ -123,6 +169,11 @@ public class schoolScheduling
 	static int totalErrors = 0;
 	static int numStudents = 0;
 	static int schedulesWithErrors = 0;
+	static ArrayList<Student> grade12 = new ArrayList<Student>();
+	static ArrayList<Student> grade11 = new ArrayList<Student>();
+	static ArrayList<Student> grade10 = new ArrayList<Student>();
+	static ArrayList<Student> grade9 = new ArrayList<Student>();
+	static ArrayList<Order> orders = new ArrayList<Order>();
 	public static void main(String[] args) throws Exception
 	{
 		Scanner dataInput = new Scanner(new File("courseData.txt"));
@@ -179,22 +230,53 @@ public class schoolScheduling
 			numStudents++;
 		}
 		
-		int first;
-     	for (int i = students.size() - 1; i > 0; i -- )  
-     	{
-		          first = 0;  
-		          for(int j = 1; j <= i; j ++)   
-		          {
-		               if(students.get(j).getGradeLevel() < students.get(first).getGradeLevel() )         
-		                 first = j;
-		          }
-		          Student temp = students.get(first);   
-		          students.set(first, students.get(i));
-		          students.set(i, temp);
-		}           
+		Collections.sort(students, new Student());         
 	
+		for(int b = 0; b<students.size(); b++)
+		{
+			if(students.get(b).getGradeLevel() == 12)
+				grade12.add(students.get(b));
+			if(students.get(b).getGradeLevel() == 11)
+				grade11.add(students.get(b));
+			if(students.get(b).getGradeLevel() == 10)
+				grade10.add(students.get(b));
+			if(students.get(b).getGradeLevel() == 9)
+				grade9.add(students.get(b));
+		}
 		
-		for(int a = 0; a<students.size(); a++)
+		for(int x = 0; x<200; x++)
+		{
+			ArrayList<Student> orderList = new ArrayList<Student>();
+			Collections.shuffle(grade12);
+			Collections.shuffle(grade11);
+			Collections.shuffle(grade10);
+			Collections.shuffle(grade9);
+			for(int i = 0; i<grade12.size(); i++)
+			{
+				orderList.add(grade12.get(i));
+			}
+			for(int k = 0; k<grade11.size(); k++)
+			{
+				orderList.add(grade11.get(k));
+			}
+			for(int g = 0; g<grade10.size(); g++)
+			{
+				orderList.add(grade10.get(g));
+			}
+			for(int h = 0; h<grade9.size(); h++)
+			{
+				orderList.add(grade9.get(h));
+			}
+			Order order = new Order(orderList);
+			if(!orders.contains(order))
+			{
+				orders.add(order);
+				System.out.println(order);
+			}
+		}
+		System.out.println("Fittest Order: " + getFittestOrder());
+		
+		/*for(int a = 0; a<students.size(); a++)
 		{
 			Student s = students.get(a);
 			scheduler(s);
@@ -203,7 +285,7 @@ public class schoolScheduling
 				schedulesWithErrors++;
 			System.out.println("ID: " + s.getId() + "\nGrade Level: " + s.getGradeLevel() + "\nCourse Requests: " + Arrays.toString(s.getRequests()) + "\nSchedule: " + Arrays.toString(s.getSchedule()) + "\nErrors: " + s.getNumErrors());
 			System.out.println();
-		}
+		}*/
 		
 		System.out.println();
 		System.out.println("SPOTS LEFT AFTER MAKING ALL THE SCHEDULES: ");
@@ -215,11 +297,11 @@ public class schoolScheduling
 			}
 			System.out.println();
 		}
-		System.out.println("The Average Number of Errors per Schedule: " + countAvgNumErrors());
-		System.out.println("The Percent Error (The percent of schedules with 1 or more errors): " + overallPercentError() + " %");
+		//System.out.println("The Average Number of Errors per Schedule: " + countAvgNumErrors());
+		//System.out.println("The Percent Error (The percent of schedules with 1 or more errors): " + overallPercentError() + " %");
 	}
 	
-	
+	//RANDOM SCHEDULER
 	/*public static void scheduler(Student t) //Must be static, right?
 	{
 		for(int v = 0; v<courses.size(); v++)
@@ -238,10 +320,15 @@ public class schoolScheduling
 	
 	public static void scheduler(Student t)
 	{
-		Subject[] requests = t.getRequests();
-		for(int x = 0; x<requests.length; x++)
+		ArrayList<Subject> requests = new ArrayList<Subject>();
+		for(int a = 0; a<t.getRequests().length; a++)
 		{
-			int pos = courses.indexOf(requests[x]);
+			requests.add(t.getRequests()[a]);
+		}
+		Collections.shuffle(requests);
+		for(int x = 0; x<requests.size(); x++)
+		{
+			int pos = courses.indexOf(requests.get(x));
 			for(int a = 0; a<4; a++)
 			{
 				if(t.getSchedule()[a] == null && scheduleNotContainsClass(courses.get(pos), t) && checkCoursePeriods(courses.get(pos), a) && courses.get(pos).spotsAvailable(a))
@@ -252,8 +339,8 @@ public class schoolScheduling
 				}
 			}
 		}
-			
 	}
+			
 	
 	public static boolean checkCoursePeriods(Subject a, int g)
 	{
@@ -285,5 +372,20 @@ public class schoolScheduling
 		double decimalError = (double)schedulesWithErrors/numStudents;
 		double percentError = decimalError * 100;
 		return percentError;
+	}
+	
+	public static Order getFittestOrder()
+	{
+		double fittest = orders.get(0).getFitness();
+		Order fittestOrder = orders.get(0);
+		for(int a = 0; a<orders.size(); a++)
+		{
+			if(orders.get(a).getFitness() < fittest)
+			{
+				fittest = orders.get(a).getFitness();
+				fittestOrder = orders.get(0);
+			}
+		}
+		return fittestOrder;
 	}
 }
