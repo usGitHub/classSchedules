@@ -155,10 +155,11 @@ class Order
 		int scheduleNumWithErrors = 0;
 		for(int a = 0; a<schedulingOrder.size(); a++)
 		{
-			//schoolScheduling.setBestSchedule();
 			Student s = schedulingOrder.get(a);
+			System.out.println(a);
 			Subject[] bestSchedule = schoolScheduling.findSchedule(
 					s.getRequests(), schoolScheduling.findOpenClasses(), new Subject[4], 0);
+			// System.out.println(a + ' ' + Arrays.toString(bestSchedule));
 			s.setSchedule(bestSchedule);
 			schoolScheduling.changeNumSpotsPerClass(s.getSchedule());
 			schoolScheduling.changeCoursePeriods();
@@ -431,11 +432,13 @@ public class schoolScheduling
 		for(int a = 0; a<schedule1.length; a++)
 		{
 			Subject course = schedule1[a];
-			course.changeNumSpots(a);
+			if (course != null) {
+				course.changeNumSpots(a);
+			}
 		}
 	}
 
-	public static String[] findOpenClasses()
+	public static ArrayList<String> findOpenClasses()
 	{
 		ArrayList<String> open = new ArrayList<String>();
 		for(int r = 0; r<coursePeriods.length; r++)
@@ -446,69 +449,43 @@ public class schoolScheduling
 				open.add(namePlusPeriod);
 			}
 		}
-		String[] openClasses = new String[open.size()];
-		for(int a = 0; a<open.size(); a++)
-		{
-			openClasses[a] = open.get(a);
-		}
-		return openClasses;
+		return open;
 	}
 
-	public static int[] match(Subject course, String[] open1)
+	public static ArrayList<Integer> match(Subject course, ArrayList<String> open)
 	{
 		ArrayList<Integer> periods = new ArrayList<Integer>();
-		CharSequence courseNm = (CharSequence)course.getName();
-		for(int a = 0; a<open1.length; a++)
-		{
-			if(open1[a].contains(courseNm))
-			{
-				String[] arr = open1[a].split(";");
-				periods.add(Integer.parseInt(arr[1]));
+		CharSequence courseNm = (CharSequence) course.getName();
+		for (String openClass: open) {
+			if (openClass.contains(courseNm + ";")) {
+				periods.add(Integer.parseInt(openClass.split(";")[1]));
 			}
 		}
-		int[] periods1 = new int[periods.size()];
-		for(int b = 0; b<periods.size(); b++)
-		{
-			periods1[b] = periods.get(b);
-		}
-		return periods1;
+
+		return periods;
 	}
 
-	public static boolean currentBetterThanBest(Subject[] best, Subject[] s, Subject[] r)
-	{
+	public static int countNotNull(Object[] objects) {
 		int count = 0;
-		int countBest = 0;
-		for(int a = 0; a<r.length; a++)
-		{
-			for(int b = 0; b<best.length; b++)
-			{
-				if(r[a] == best[b])
-				{
-					countBest++;
-				}
-			}
-			for(int x = 0; x<s.length; x++)
-			{
-				if(r[a] == s[x])
-				{
-					count++;
-				}
+		for (Object o: objects) {
+			if (o != null) {
+				count++;
 			}
 		}
-		if(count>=countBest)
-			return true;
-		return false;
+
+		return count;
 	}
 
-	public static Subject[] findSchedule(Subject[] requested, String[] open, Subject[] schedule, int index){
+	public static Subject[] findSchedule(Subject[] requested, ArrayList<String> open, Subject[] schedule, int index){
 	 	if(index == requested.length) {
+	 		// System.out.println(Arrays.toString(schedule));
 	 		return schedule;
 	 	} else {
 			Subject[] bestSchedule = null;
 			Subject req = requested[index];
 		  // find all classes that match the requested class
 		  // in open (I'm skipping that in the pseudocode)
-		  	int[] matching = match(req, open);
+		  	ArrayList<Integer> matching = match(req, open);
 
 		  	for(int m: matching)
 		  	{
@@ -517,8 +494,14 @@ public class schoolScheduling
 		    	{
 			      schedule[period] = req; // set the period to the class
 			      Subject[] filledSchedule = findSchedule(requested, open, schedule, index + 1); // recursion
-			      if (bestSchedule == null || currentBetterThanBest(bestSchedule, schedule, requested)) {
-			      	bestSchedule = (Subject[]) (schedule.clone());
+			      if (bestSchedule == null){
+			      	bestSchedule = (Subject[]) (filledSchedule.clone());
+			      } else {
+			      	int bestCount = countNotNull(bestSchedule);
+			      	int myCount = countNotNull(filledSchedule);
+			      	if (myCount > bestCount) {
+			      		bestSchedule = (Subject[]) (filledSchedule.clone());
+			      	}
 			      }
 			      schedule[period] = null; // reset the period to null (after recursion)
 			    }
