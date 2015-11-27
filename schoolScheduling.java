@@ -113,7 +113,7 @@ class Subject
 
 	public void changeNumSpots(int n)
 	{
-		if(periodSize.get(n+1)!=0)
+		if(periodSize.get(n+1)>0)
 			periodSize.put(n+1,periodSize.get(n+1)-1);
 	}
 
@@ -138,8 +138,9 @@ class Order
 	private ArrayList<Student> schedulingOrder;
 	private double fitness;
 
-	public Order(ArrayList<Student> o)
+	public Order(ArrayList<Student> o) throws Exception
 	{
+		//schoolScheduling.resetCourses();
 		schedulingOrder = o;
 		fitness = assignFitness();
 	}
@@ -149,14 +150,15 @@ class Order
 		return fitness;
 	}
 
-	public double assignFitness()
+	public double assignFitness() throws Exception
 	{
+			schoolScheduling.resetCourses();
 		int errorsTotal = 0;
 		int scheduleNumWithErrors = 0;
 		for(int a = 0; a<schedulingOrder.size(); a++)
 		{
 			Student s = schedulingOrder.get(a);
-			System.out.println(a);
+			//System.out.println(a);
 			Subject[] bestSchedule = schoolScheduling.findSchedule(
 					s.getRequests(), schoolScheduling.findOpenClasses(), new Subject[4], 0);
 			// System.out.println(a + ' ' + Arrays.toString(bestSchedule));
@@ -210,7 +212,7 @@ public class schoolScheduling
 			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
 				for(int h = 0; h<courses.size(); h++)
 				{
-						if(courses.get(h).getPeriodSize(k)!= 0)
+						if(courses.get(h).getPeriodSize(k)>0)
 							availablePeriods.add(courses.get(h));
 				}
 				Subject[] tempPeriods = new Subject[availablePeriods.size()];
@@ -406,6 +408,64 @@ public class schoolScheduling
 		}
 		return fittestOrder;
 	}
+	
+	public static void resetCourses() throws Exception
+	{
+		Scanner dataInput = new Scanner(new File("courseData.txt"));
+		courses.clear();
+		while(dataInput.hasNextLine())
+		{
+			String s = dataInput.nextLine();
+			String[] courseInfo = s.split(",");
+			String courseName = courseInfo[0];
+			int courseId = Integer.parseInt(courseInfo[1]);
+			String[] courseSize = courseInfo[2].split("-");
+			Subject newCourse = new Subject(courseName, courseId, courseSize);
+			courses.add(newCourse);
+		}
+
+		for(int k = 1; k<=coursePeriods.length; k++)
+		{
+			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
+				for(int h = 0; h<courses.size(); h++)
+				{
+						if(courses.get(h).getPeriodSize(k)>0)
+							availablePeriods.add(courses.get(h));
+				}
+				Subject[] tempPeriods = new Subject[availablePeriods.size()];
+				for(int t = 0; t<tempPeriods.length; t++)
+				{
+					tempPeriods[t] = availablePeriods.get(t);
+				}
+			coursePeriods[k-1] = tempPeriods;
+		}
+		Scanner input = new Scanner(new File("studentInfoData.txt"));
+		while(input.hasNextLine())
+		{
+			String str = input.nextLine();
+			String[] nums = str.split(" ");
+			int[] studentRequests = new int[nums.length];
+			for(int y = 0; y<nums.length; y++)
+				studentRequests[y] = Integer.parseInt(nums[y]);
+			int idNum = studentRequests[0];
+			int gradeNum = studentRequests[1];
+			Subject[] courseRequests = new Subject[studentRequests.length-2];
+			for(int z = 2; z<studentRequests.length; z++)
+			{
+				for(int a = 0; a<courses.size(); a++)
+				{
+					if(studentRequests[z] == courses.get(a).getIdNum())
+					{
+						courseRequests[z-2] = courses.get(a);
+					}
+				}
+			}
+			Student b = new Student(courseRequests, idNum, gradeNum);
+			students.add(b);
+			numStudents++;
+		}
+		System.out.println("Reset");
+	}
 
 	public static void changeCoursePeriods()
 	{
@@ -424,7 +484,7 @@ public class schoolScheduling
 				}
 			coursePeriods[k-1] = tempPeriods;
 		}
-
+		System.out.println("ChangedCoursePeriods");
 	}
 
 	public static void changeNumSpotsPerClass(Subject[] schedule1)
@@ -436,6 +496,7 @@ public class schoolScheduling
 				course.changeNumSpots(a);
 			}
 		}
+		System.out.println("Changed");
 	}
 
 	public static ArrayList<String> findOpenClasses()
