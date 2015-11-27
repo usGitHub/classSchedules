@@ -506,6 +506,9 @@ public class schoolScheduling
 			      schedule[period] = null; // reset the period to null (after recursion)
 			    }
 			 }
+			 if (bestSchedule == null) { // no matches available for this period, skip the class
+			 	bestSchedule = (Subject[]) findSchedule(requested, open, schedule, index + 1);
+			 }
 			 return bestSchedule;
 		}
 
