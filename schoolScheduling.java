@@ -478,7 +478,7 @@ public class schoolScheduling
 
 	public static Subject[] findSchedule(Subject[] requested, ArrayList<String> open, Subject[] schedule, int index){
 	 	if(index == requested.length) {
-	 		// System.out.println(Arrays.toString(schedule));
+	 		//System.out.println(Arrays.toString(schedule));
 	 		return schedule;
 	 	} else {
 			Subject[] bestSchedule = null;
