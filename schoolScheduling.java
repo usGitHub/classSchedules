@@ -506,6 +506,9 @@ public class schoolScheduling
 			      schedule[period] = null; // reset the period to null (after recursion)
 			    }
 			 }
+			 if (bestSchedule == null) { // no matches available for this period, return a copy of the schedule
+			 	bestSchedule = (Subject[]) schedule.clone();
+			 }
 			 return bestSchedule;
 		}
 
