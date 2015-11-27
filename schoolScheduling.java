@@ -10,6 +10,7 @@ class Student implements Comparator<Student>
 	
 	public Student()
 	{}
+	
 	public Student(Subject[] requests, int num, int g)
 	{
 		classRequests = requests;
@@ -21,6 +22,11 @@ class Student implements Comparator<Student>
 	public int compare(Student s, Student s1)
 	{
 		return s1.gradeLevel - s.gradeLevel;
+	}
+	
+	public void setSchedule(Subject[] classes)
+	{
+		assignedClasses = classes;
 	}
 	
 	public int getId()
@@ -66,7 +72,7 @@ class Student implements Comparator<Student>
 	
 	public String toString()
 	{
-		return getNumErrors() + "";//"ID Number: " + idNumber + " -- Grade Level: " + gradeLevel + " -- Course Requests: " + Arrays.toString(classRequests);
+		return Arrays.toString(assignedClasses) + " ID: " + idNumber;//"ID Number: " + idNumber + " -- Grade Level: " + gradeLevel + " -- Course Requests: " + Arrays.toString(classRequests);
 	}
 }
 
@@ -116,6 +122,11 @@ class Subject
 		return periodSize.get(e+1)!=0;
 	}
 	
+	public String getName()
+	{
+		return name;
+	}
+	
 	public String toString()
 	{
 		return name;
@@ -144,8 +155,12 @@ class Order
 		int scheduleNumWithErrors = 0;
 		for(int a = 0; a<schedulingOrder.size(); a++)
 		{
+			//schoolScheduling.setBestSchedule();
 			Student s = schedulingOrder.get(a);
-			schoolScheduling.scheduler(s);
+			schoolScheduling.findSchedule(s.getRequests(), schoolScheduling.findOpenClasses(), new Subject[4], 0);
+			s.setSchedule(schoolScheduling.getBestSchedule());
+			schoolScheduling.changeNumSpotsPerClass(s.getSchedule());
+			schoolScheduling.changeCoursePeriods();
 			errorsTotal += s.getNumErrors();
 			if(s.getNumErrors()>0)
 				scheduleNumWithErrors++;
@@ -157,7 +172,7 @@ class Order
 	
 	public String toString()
 	{
-		return "Fitness: " + fitness; // + " Order: " + schedulingOrder;
+		return schedulingOrder + ""; // + " Order: " + schedulingOrder;
 	}
 }
 
@@ -244,7 +259,7 @@ public class schoolScheduling
 				grade9.add(students.get(b));
 		}
 		
-		for(int x = 0; x<200; x++)
+		for(int x = 0; x<5; x++)
 		{
 			ArrayList<Student> orderList = new ArrayList<Student>();
 			Collections.shuffle(grade12);
@@ -274,7 +289,7 @@ public class schoolScheduling
 				System.out.println(order);
 			}
 		}
-		System.out.println("Fittest Order: " + getFittestOrder());
+		//System.out.println("Fittest Order: " + getFittestOrder());
 		
 		/*for(int a = 0; a<students.size(); a++)
 		{
@@ -318,7 +333,7 @@ public class schoolScheduling
 		}
 	}*/
 	
-	public static void scheduler(Student t)
+	/*public static void scheduler(Student t)
 	{
 		ArrayList<Subject> requests = new ArrayList<Subject>();
 		for(int a = 0; a<t.getRequests().length; a++)
@@ -326,9 +341,10 @@ public class schoolScheduling
 			requests.add(t.getRequests()[a]);
 		}
 		Collections.shuffle(requests);
-		for(int x = 0; x<requests.size(); x++)
+		Subject[] requests = t.getRequests();
+		for(int x = 0; x<requests.length; x++)
 		{
-			int pos = courses.indexOf(requests.get(x));
+			int pos = courses.indexOf(requests[x]);
 			for(int a = 0; a<4; a++)
 			{
 				if(t.getSchedule()[a] == null && scheduleNotContainsClass(courses.get(pos), t) && checkCoursePeriods(courses.get(pos), a) && courses.get(pos).spotsAvailable(a))
@@ -339,7 +355,7 @@ public class schoolScheduling
 				}
 			}
 		}
-	}
+	}*/
 			
 	
 	public static boolean checkCoursePeriods(Subject a, int g)
@@ -387,5 +403,144 @@ public class schoolScheduling
 			}
 		}
 		return fittestOrder;
+	}
+	
+	public static void changeCoursePeriods()
+	{
+		for(int k = 1; k<=coursePeriods.length; k++) 
+		{
+			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
+				for(int h = 0; h<courses.size(); h++)
+				{
+						if(courses.get(h).getPeriodSize(k)>0)
+							availablePeriods.add(courses.get(h));
+				}
+				Subject[] tempPeriods = new Subject[availablePeriods.size()];
+				for(int t = 0; t<tempPeriods.length; t++)
+				{
+					tempPeriods[t] = availablePeriods.get(t);
+				}
+			coursePeriods[k-1] = tempPeriods;
+		}
+		
+	}
+	
+	public static void changeNumSpotsPerClass(Subject[] schedule1)
+	{
+		for(int a = 0; a<schedule1.length; a++)
+		{
+			Subject course = schedule1[a];
+			course.changeNumSpots(a);
+		}
+	}
+	
+	public static String[] findOpenClasses()
+	{
+		ArrayList<String> open = new ArrayList<String>();
+		for(int r = 0; r<coursePeriods.length; r++)
+		{
+			for(int c = 0; c<coursePeriods[r].length; c++)
+			{
+				String namePlusPeriod = coursePeriods[r][c].getName() + ";" + (r+1);
+				open.add(namePlusPeriod);
+			}
+		}
+		String[] openClasses = new String[open.size()];
+		for(int a = 0; a<open.size(); a++)
+		{
+			openClasses[a] = open.get(a);
+		}
+		return openClasses;
+	}
+	
+	public static int[] match(Subject course, String[] open1)
+	{
+		ArrayList<Integer> periods = new ArrayList<Integer>();
+		CharSequence courseNm = (CharSequence)course.getName();
+		for(int a = 0; a<open1.length; a++)
+		{
+			if(open1[a].contains(courseNm))
+			{
+				String[] arr = open1[a].split(";");
+				periods.add(Integer.parseInt(arr[1]));
+			}
+		}
+		int[] periods1 = new int[periods.size()];
+		for(int b = 0; b<periods.size(); b++)
+		{
+			periods1[b] = periods.get(b);
+		}
+		return periods1;
+	}
+	
+	public static boolean currentBetterThanBest(Subject[] best, Subject[] s, Subject[] r)
+	{
+		int count = 0;
+		int countBest = 0;
+		for(int a = 0; a<r.length; a++)
+		{
+			for(int b = 0; b<best.length; b++)
+			{
+				if(r[a] == best[b])
+				{
+					countBest++;
+				}
+			}
+			for(int x = 0; x<s.length; x++)
+			{
+				if(r[a] == s[x])
+				{
+					count++;
+				}
+			}		
+		}
+		if(count>=countBest)
+			return true;
+		return false;
+	}
+	
+	public static Subject[] bestSchedule = null; // global
+
+	public static void findSchedule(Subject[] requested, String[] open, Subject[] schedule, int index){
+
+ 	if(index == requested.length) // end of iteration
+ 	{ 
+    	if (bestSchedule == null || currentBetterThanBest(bestSchedule, schedule, requested)) // current schedule better than best schedule
+    	{	
+     		bestSchedule = (Subject[]) (schedule.clone()); // set bestSchedule
+    	}
+ 	}
+
+	else
+	{
+		Subject req = requested[index];
+	  // find all classes that match the requested class
+	  // in open (I'm skipping that in the pseudocode)
+	  	int[] matching = match(req, open);
+	
+	  	for(int m: matching) 
+	  	{
+	    	int period = m - 1; //-1 because period 1 is arr[0]
+	    	if (schedule[period] == null) // check if period is available in schedule
+	    	{ 
+		      schedule[period] = req; // set the period to the class
+		      findSchedule(requested, open, schedule, index + 1); // recursion
+		      schedule[period] = null; // reset the period to null (after recursion)
+		    }
+	
+		 }
+	}
+	  
+}
+
+	public static Subject[] getBestSchedule()
+	{
+		/*Subject[] bestSchedule1 = new Subject[bestSchedule.length];
+		for(int a = 0; a<bestSchedule.length; a++)
+		{
+			bestSchedule1[a] = bestSchedule[a];
+		}
+		bestSchedule = null;*/
+		return bestSchedule;
 	}
 }
