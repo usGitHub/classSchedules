@@ -126,6 +126,11 @@ class Subject
 	{
 		return name;
 	}
+	
+	public void setPeriodSize(int period, int size)
+	{
+		periodSize.put(period,size);
+	}
 
 	public String toString()
 	{
@@ -140,7 +145,7 @@ class Order
 
 	public Order(ArrayList<Student> o) throws Exception
 	{
-		//schoolScheduling.resetCourses();
+		schoolScheduling.resetCourses();
 		schedulingOrder = o;
 		fitness = assignFitness();
 	}
@@ -150,9 +155,9 @@ class Order
 		return fitness;
 	}
 
-	public double assignFitness() throws Exception
+	public double assignFitness() 
 	{
-			schoolScheduling.resetCourses();
+		//schoolScheduling.resetCourses();
 		int errorsTotal = 0;
 		int scheduleNumWithErrors = 0;
 		for(int a = 0; a<schedulingOrder.size(); a++)
@@ -176,7 +181,7 @@ class Order
 
 	public String toString()
 	{
-		return schedulingOrder + ""; // + " Order: " + schedulingOrder;
+		return "Fitness: " + fitness + ""; // + " Order: " + schedulingOrder;
 	}
 }
 
@@ -193,6 +198,8 @@ public class schoolScheduling
 	static ArrayList<Student> grade10 = new ArrayList<Student>();
 	static ArrayList<Student> grade9 = new ArrayList<Student>();
 	static ArrayList<Order> orders = new ArrayList<Order>();
+	static int ordersMutated = 0;
+	static int numOrders = 0;
 	public static void main(String[] args) throws Exception
 	{
 		Scanner dataInput = new Scanner(new File("courseData.txt"));
@@ -263,7 +270,7 @@ public class schoolScheduling
 				grade9.add(students.get(b));
 		}
 
-		for(int x = 0; x<5; x++)
+		for(int x = 0; x<200; x++)
 		{
 			ArrayList<Student> orderList = new ArrayList<Student>();
 			Collections.shuffle(grade12);
@@ -286,13 +293,16 @@ public class schoolScheduling
 			{
 				orderList.add(grade9.get(h));
 			}
+			orderList = (ArrayList<Student>) (mutate(orderList).clone());
 			Order order = new Order(orderList);
 			if(!orders.contains(order))
 			{
 				orders.add(order);
+				numOrders++;
 				System.out.println(order);
 			}
 		}
+		System.out.println("Percent Mutation: " + percentMutation());
 		//System.out.println("Fittest Order: " + getFittestOrder());
 
 		/*for(int a = 0; a<students.size(); a++)
@@ -411,59 +421,20 @@ public class schoolScheduling
 	
 	public static void resetCourses() throws Exception
 	{
-		Scanner dataInput = new Scanner(new File("courseData.txt"));
-		courses.clear();
-		while(dataInput.hasNextLine())
+		Scanner input = new Scanner(new File("courseData.txt"));
+		for(int a = 0; a<courses.size(); a++)
 		{
-			String s = dataInput.nextLine();
-			String[] courseInfo = s.split(",");
-			String courseName = courseInfo[0];
-			int courseId = Integer.parseInt(courseInfo[1]);
-			String[] courseSize = courseInfo[2].split("-");
-			Subject newCourse = new Subject(courseName, courseId, courseSize);
-			courses.add(newCourse);
-		}
-
-		for(int k = 1; k<=coursePeriods.length; k++)
-		{
-			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
-				for(int h = 0; h<courses.size(); h++)
-				{
-						if(courses.get(h).getPeriodSize(k)>0)
-							availablePeriods.add(courses.get(h));
-				}
-				Subject[] tempPeriods = new Subject[availablePeriods.size()];
-				for(int t = 0; t<tempPeriods.length; t++)
-				{
-					tempPeriods[t] = availablePeriods.get(t);
-				}
-			coursePeriods[k-1] = tempPeriods;
-		}
-		Scanner input = new Scanner(new File("studentInfoData.txt"));
-		while(input.hasNextLine())
-		{
+			Subject course = courses.get(a);
 			String str = input.nextLine();
-			String[] nums = str.split(" ");
-			int[] studentRequests = new int[nums.length];
-			for(int y = 0; y<nums.length; y++)
-				studentRequests[y] = Integer.parseInt(nums[y]);
-			int idNum = studentRequests[0];
-			int gradeNum = studentRequests[1];
-			Subject[] courseRequests = new Subject[studentRequests.length-2];
-			for(int z = 2; z<studentRequests.length; z++)
+			String[] arr = str.split(",");
+			String[] arr2 = arr[2].split("-");
+			for(int b = 0; b<arr2.length; b++)
 			{
-				for(int a = 0; a<courses.size(); a++)
-				{
-					if(studentRequests[z] == courses.get(a).getIdNum())
-					{
-						courseRequests[z-2] = courses.get(a);
-					}
-				}
+				String[] periodSize = arr2[b].split(";");
+				course.setPeriodSize(Integer.parseInt(periodSize[0]), Integer.parseInt(periodSize[1]));
 			}
-			Student b = new Student(courseRequests, idNum, gradeNum);
-			students.add(b);
-			numStudents++;
 		}
+		changeCoursePeriods();
 		System.out.println("Reset");
 	}
 
@@ -484,7 +455,7 @@ public class schoolScheduling
 				}
 			coursePeriods[k-1] = tempPeriods;
 		}
-		System.out.println("ChangedCoursePeriods");
+		//System.out.println("ChangedCoursePeriods");
 	}
 
 	public static void changeNumSpotsPerClass(Subject[] schedule1)
@@ -496,7 +467,113 @@ public class schoolScheduling
 				course.changeNumSpots(a);
 			}
 		}
-		System.out.println("Changed");
+		//System.out.println("Changed");
+	}
+	
+	public static ArrayList<Student> mutate(ArrayList<Student> listOrder)
+	{
+		List<Integer> nums = Arrays.asList(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30);
+		Collections.shuffle(nums);
+		int randomNum = nums.get(0);
+		System.out.println(randomNum);
+		if(randomNum > 29)
+		{
+			ArrayList<Student> g12 = new ArrayList<Student>();
+			ArrayList<Student> g11 = new ArrayList<Student>();
+			ArrayList<Student> g10 = new ArrayList<Student>();
+			ArrayList<Student> g9 = new ArrayList<Student>();
+			for(int a = 0; a<listOrder.size(); a++)
+			{
+				Student s = listOrder.get(a);
+				if(s.getGradeLevel() == 12)
+					g12.add(s);
+				if(s.getGradeLevel() == 11)
+					g11.add(s);
+				if(s.getGradeLevel() == 10)
+					g10.add(s);
+				if(s.getGradeLevel() == 9)
+					g9.add(s);
+			}
+			int randomGrade = (int)(Math.random()*4)+9;
+			if(randomGrade == 9)
+			{
+				int randomPos1 = (int)(Math.random()*g9.size())+0;
+				int randomPos2 = (int)(Math.random()*g9.size())+0;
+				while(randomPos1 == randomPos2)
+				{
+					randomPos2 = (int)(Math.random()*g9.size())+0;
+				}
+				Student temp = g9.get(randomPos1);
+				g9.set(randomPos1, g9.get(randomPos2));
+				g9.set(randomPos2, temp);
+			}
+			if(randomGrade == 10)
+			{
+				int randomPos1 = (int)(Math.random()*g10.size())+0;
+				int randomPos2 = (int)(Math.random()*g10.size())+0;
+				while(randomPos1 == randomPos2)
+				{
+					randomPos2 = (int)(Math.random()*g10.size())+0;
+				}
+				Student temp = g10.get(randomPos1);
+				g10.set(randomPos1, g10.get(randomPos2));
+				g10.set(randomPos2, temp);
+			}
+			if(randomGrade == 11)
+			{
+				int randomPos1 = (int)(Math.random()*g11.size())+0;
+				int randomPos2 = (int)(Math.random()*g11.size())+0;
+				while(randomPos1 == randomPos2)
+				{
+					randomPos2 = (int)(Math.random()*g11.size())+0;
+				}
+				Student temp = g11.get(randomPos1);
+				g11.set(randomPos1, g11.get(randomPos2));
+				g11.set(randomPos2, temp);
+			}
+			if(randomGrade == 12)
+			{
+				int randomPos1 = (int)(Math.random()*g12.size())+0;
+				int randomPos2 = (int)(Math.random()*g12.size())+0;
+				while(randomPos1 == randomPos2)
+				{
+					randomPos2 = (int)(Math.random()*g12.size())+0;
+				}
+				Student temp = g12.get(randomPos1);
+				g12.set(randomPos1, g12.get(randomPos2));
+				g12.set(randomPos2, temp);
+			}
+			ArrayList<Student> mutatedList = new ArrayList<Student>();
+			for(int i = 0; i<g12.size(); i++)
+			{
+				mutatedList.add(g12.get(i));
+			}
+			for(int k = 0; k<g11.size(); k++)
+			{
+				mutatedList.add(g11.get(k));
+			}
+			for(int g = 0; g<g10.size(); g++)
+			{
+				mutatedList.add(g10.get(g));
+			}
+			for(int h = 0; h<g9.size(); h++)
+			{
+				mutatedList.add(g9.get(h));
+			}
+			ordersMutated++;
+			System.out.println("Mutated");
+			return mutatedList;
+		}
+		else
+		{
+			return listOrder;
+		}
+	}
+	
+	public static double percentMutation()
+	{
+		double mutationPercent = (ordersMutated/(numOrders*1.0)) * 100.0;
+		return mutationPercent;
 	}
 
 	public static ArrayList<String> findOpenClasses()
