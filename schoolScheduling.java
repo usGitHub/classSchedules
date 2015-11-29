@@ -7,6 +7,7 @@ class Student implements Comparator<Student>
 	private Subject[] assignedClasses;
 	private int idNumber;
 	private int gradeLevel;
+	private boolean mutated;
 
 	public Student()
 	{}
@@ -17,6 +18,7 @@ class Student implements Comparator<Student>
 		assignedClasses = new Subject[4];
 		idNumber = num;
 		gradeLevel = g;
+		mutated = false;
 	}
 
 	public int compare(Student s, Student s1)
@@ -24,6 +26,11 @@ class Student implements Comparator<Student>
 		return s1.gradeLevel - s.gradeLevel;
 	}
 
+	public void setMutated(boolean x)
+	{
+		mutated = x;
+	}
+	
 	public void setSchedule(Subject[] classes)
 	{
 		assignedClasses = classes;
@@ -72,7 +79,7 @@ class Student implements Comparator<Student>
 
 	public String toString()
 	{
-		return Arrays.toString(assignedClasses) + " ID: " + idNumber;//"ID Number: " + idNumber + " -- Grade Level: " + gradeLevel + " -- Course Requests: " + Arrays.toString(classRequests);
+		return " ID: " + idNumber;//"ID Number: " + idNumber + " -- Grade Level: " + gradeLevel + " -- Course Requests: " + Arrays.toString(classRequests);
 	}
 }
 
@@ -142,17 +149,39 @@ class Order
 {
 	private ArrayList<Student> schedulingOrder;
 	private double fitness;
+	private double chanceOfSurvival;
 
-	public Order(ArrayList<Student> o) throws Exception
+	public Order(ArrayList<Student> x) throws Exception
 	{
 		schoolScheduling.resetCourses();
-		schedulingOrder = o;
+		schedulingOrder = x;
 		fitness = assignFitness();
+		chanceOfSurvival = 0;
+	}
+	
+	public void setSchedulingOrder(ArrayList<Student> y)
+	{
+		schedulingOrder = y;
 	}
 
 	public double getFitness()
 	{
 		return fitness;
+	}
+	
+	public double getChanceOfSurvival()
+	{
+		return chanceOfSurvival;
+	}
+	
+	public ArrayList<Student> getSchedulingOrder()
+	{
+		return schedulingOrder;
+	}
+	
+	public void setChanceOfSurvival()
+	{
+		chanceOfSurvival = (double)fitness/schoolScheduling.getOrdersFitnessSum();
 	}
 
 	public double assignFitness() 
@@ -175,13 +204,14 @@ class Order
 				scheduleNumWithErrors++;
 		}
 		double decimError = (double)scheduleNumWithErrors/schedulingOrder.size();
-		double pError = decimError * 100;
-		return pError;
+		double pError = decimError * 100.0;
+		double fitness1 = 100.0-pError;
+		return fitness1;
 	}
 
 	public String toString()
 	{
-		return "Fitness: " + fitness + ""; // + " Order: " + schedulingOrder;
+		return "Fitness: " + fitness; // + " Order: " + schedulingOrder;
 	}
 }
 
@@ -200,6 +230,11 @@ public class schoolScheduling
 	static ArrayList<Order> orders = new ArrayList<Order>();
 	static int ordersMutated = 0;
 	static int numOrders = 0;
+	static int allOrdersFitnessSum = 0;
+	static double sumChances = 0.0;
+	static int studentsMutated = 0;
+	static double avgPercentMutation = 0.0;
+	static double percentMutationOverall = 0.0;
 	public static void main(String[] args) throws Exception
 	{
 		Scanner dataInput = new Scanner(new File("courseData.txt"));
@@ -270,7 +305,7 @@ public class schoolScheduling
 				grade9.add(students.get(b));
 		}
 
-		for(int x = 0; x<200; x++)
+		for(int x = 0; x<100; x++)
 		{
 			ArrayList<Student> orderList = new ArrayList<Student>();
 			Collections.shuffle(grade12);
@@ -299,79 +334,40 @@ public class schoolScheduling
 			{
 				orders.add(order);
 				numOrders++;
-				System.out.println(order);
+				allOrdersFitnessSum += order.getFitness();
 			}
 		}
-		System.out.println("Percent Mutation: " + percentMutation());
-		//System.out.println("Fittest Order: " + getFittestOrder());
-
-		/*for(int a = 0; a<students.size(); a++)
+		for(int a = 0; a<orders.size(); a++)
 		{
-			Student s = students.get(a);
-			scheduler(s);
-			totalErrors += s.getNumErrors();
-			if(s.getNumErrors()>0)
-				schedulesWithErrors++;
-			System.out.println("ID: " + s.getId() + "\nGrade Level: " + s.getGradeLevel() + "\nCourse Requests: " + Arrays.toString(s.getRequests()) + "\nSchedule: " + Arrays.toString(s.getSchedule()) + "\nErrors: " + s.getNumErrors());
-			System.out.println();
-		}*/
-
-		System.out.println();
-		System.out.println("SPOTS LEFT AFTER MAKING ALL THE SCHEDULES: ");
-		for(int y = 0; y<courses.size(); y++)
+			Order order1 = orders.get(a);
+			order1.setChanceOfSurvival();
+			sumChances += order1.getChanceOfSurvival();
+			//System.out.println("Chance of Survival: " + order1.getChanceOfSurvival());
+		}
+		System.out.println("FIRST GENERATION: ");
+		System.out.println(orders);
+		//System.out.println("Sum chances: " + sumChances);
+		//System.out.println("Percent Mutation: " + percentMutation());
+		
+		ArrayList<Order> previousGeneration = (ArrayList<Order>) (orders.clone());
+		for(int i = 0; i<200; i++)
 		{
-			for(int x = 1; x<=4; x++)
+			System.out.println("NEW GENERATION: ");
+			ArrayList<Order> generation = (ArrayList<Order>) (reproduce(previousGeneration).clone());
+			for(int a = 0; a<generation.size(); a++)
 			{
-				System.out.println("Spots left in period " + x + " of " + courses.get(y) + ": " + courses.get(y).getPeriodSize(x));
+				Order order2 = generation.get(a);
+				order2.setSchedulingOrder(mutate(order2.getSchedulingOrder()));
 			}
-			System.out.println();
+			System.out.println(generation);
+			System.out.println("Average # Students Mutated per Order: " + avgPercentMutation/(generation.size() * 1.0));
 		}
-		//System.out.println("The Average Number of Errors per Schedule: " + countAvgNumErrors());
-		//System.out.println("The Percent Error (The percent of schedules with 1 or more errors): " + overallPercentError() + " %");
 	}
 
-	//RANDOM SCHEDULER
-	/*public static void scheduler(Student t) //Must be static, right?
+	public static double getOrdersFitnessSum()
 	{
-		for(int v = 0; v<courses.size(); v++)
-		{
-			for(int x = 0; x<4; x++)//
-			{
-				if(t.getSchedule()[x]==null && checkCoursePeriods(courses.get(v),x) && courses.get(v).spotsAvailable(x)) //Do I need to take into account if the class is already in the student's schedule? Because results show that no class is repeated in the same schedule
-				{
-					t.setPeriod(x,courses.get(v));
-					courses.get(v).changeNumSpots(x);
-					break;
-				}
-			}
-		}
-	}*/
-
-	/*public static void scheduler(Student t)
-	{
-		ArrayList<Subject> requests = new ArrayList<Subject>();
-		for(int a = 0; a<t.getRequests().length; a++)
-		{
-			requests.add(t.getRequests()[a]);
-		}
-		Collections.shuffle(requests);
-		Subject[] requests = t.getRequests();
-		for(int x = 0; x<requests.length; x++)
-		{
-			int pos = courses.indexOf(requests[x]);
-			for(int a = 0; a<4; a++)
-			{
-				if(t.getSchedule()[a] == null && scheduleNotContainsClass(courses.get(pos), t) && checkCoursePeriods(courses.get(pos), a) && courses.get(pos).spotsAvailable(a))
-				{
-					t.setPeriod(a, courses.get(pos));
-					courses.get(pos).changeNumSpots(a);
-					break;
-				}
-			}
-		}
-	}*/
-
-
+		return allOrdersFitnessSum * 1.0;
+	}
 	public static boolean checkCoursePeriods(Subject a, int g)
 	{
 		for(int w = 0; w<coursePeriods[g].length; w++)
@@ -435,7 +431,6 @@ public class schoolScheduling
 			}
 		}
 		changeCoursePeriods();
-		System.out.println("Reset");
 	}
 
 	public static void changeCoursePeriods()
@@ -470,104 +465,123 @@ public class schoolScheduling
 		//System.out.println("Changed");
 	}
 	
+	public static ArrayList<Order> reproduce(ArrayList<Order> orderList1)
+	{
+		ArrayList<Order> nextGeneration = new ArrayList<Order>();
+		double[] orderBoundaries = new double[orderList1.size()];
+		orderBoundaries[0] = orderList1.get(0).getChanceOfSurvival();
+		for(int a = 1; a<orderList1.size(); a++)
+		{
+			orderBoundaries[a] = orderList1.get(a).getChanceOfSurvival() + orderBoundaries[a-1];
+		}
+		for(int b = 0; b<orderList1.size(); b++)
+		{
+			double randomNumber = Math.random();
+			int position = Arrays.binarySearch(orderBoundaries, randomNumber);
+			int finalPosition = (position + 1) * -1;
+			nextGeneration.add(orderList1.get(finalPosition));
+		}
+		return nextGeneration;
+	}
+	
 	public static ArrayList<Student> mutate(ArrayList<Student> listOrder)
 	{
-		List<Integer> nums = Arrays.asList(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30);
-		Collections.shuffle(nums);
-		int randomNum = nums.get(0);
-		System.out.println(randomNum);
-		if(randomNum > 29)
+		double percentMutation = 0.01;
+		ArrayList<Student> g12 = new ArrayList<Student>();
+		ArrayList<Student> g11 = new ArrayList<Student>();
+		ArrayList<Student> g10 = new ArrayList<Student>();
+		ArrayList<Student> g9 = new ArrayList<Student>();
+		for(int a = 0; a<listOrder.size(); a++)
 		{
-			ArrayList<Student> g12 = new ArrayList<Student>();
-			ArrayList<Student> g11 = new ArrayList<Student>();
-			ArrayList<Student> g10 = new ArrayList<Student>();
-			ArrayList<Student> g9 = new ArrayList<Student>();
-			for(int a = 0; a<listOrder.size(); a++)
-			{
-				Student s = listOrder.get(a);
-				if(s.getGradeLevel() == 12)
-					g12.add(s);
-				if(s.getGradeLevel() == 11)
-					g11.add(s);
-				if(s.getGradeLevel() == 10)
-					g10.add(s);
-				if(s.getGradeLevel() == 9)
-					g9.add(s);
-			}
-			int randomGrade = (int)(Math.random()*4)+9;
-			if(randomGrade == 9)
-			{
-				int randomPos1 = (int)(Math.random()*g9.size())+0;
-				int randomPos2 = (int)(Math.random()*g9.size())+0;
-				while(randomPos1 == randomPos2)
-				{
-					randomPos2 = (int)(Math.random()*g9.size())+0;
-				}
-				Student temp = g9.get(randomPos1);
-				g9.set(randomPos1, g9.get(randomPos2));
-				g9.set(randomPos2, temp);
-			}
-			if(randomGrade == 10)
-			{
-				int randomPos1 = (int)(Math.random()*g10.size())+0;
-				int randomPos2 = (int)(Math.random()*g10.size())+0;
-				while(randomPos1 == randomPos2)
-				{
-					randomPos2 = (int)(Math.random()*g10.size())+0;
-				}
-				Student temp = g10.get(randomPos1);
-				g10.set(randomPos1, g10.get(randomPos2));
-				g10.set(randomPos2, temp);
-			}
-			if(randomGrade == 11)
-			{
-				int randomPos1 = (int)(Math.random()*g11.size())+0;
-				int randomPos2 = (int)(Math.random()*g11.size())+0;
-				while(randomPos1 == randomPos2)
-				{
-					randomPos2 = (int)(Math.random()*g11.size())+0;
-				}
-				Student temp = g11.get(randomPos1);
-				g11.set(randomPos1, g11.get(randomPos2));
-				g11.set(randomPos2, temp);
-			}
-			if(randomGrade == 12)
-			{
-				int randomPos1 = (int)(Math.random()*g12.size())+0;
-				int randomPos2 = (int)(Math.random()*g12.size())+0;
-				while(randomPos1 == randomPos2)
-				{
-					randomPos2 = (int)(Math.random()*g12.size())+0;
-				}
-				Student temp = g12.get(randomPos1);
-				g12.set(randomPos1, g12.get(randomPos2));
-				g12.set(randomPos2, temp);
-			}
-			ArrayList<Student> mutatedList = new ArrayList<Student>();
-			for(int i = 0; i<g12.size(); i++)
-			{
-				mutatedList.add(g12.get(i));
-			}
-			for(int k = 0; k<g11.size(); k++)
-			{
-				mutatedList.add(g11.get(k));
-			}
-			for(int g = 0; g<g10.size(); g++)
-			{
-				mutatedList.add(g10.get(g));
-			}
-			for(int h = 0; h<g9.size(); h++)
-			{
-				mutatedList.add(g9.get(h));
-			}
-			ordersMutated++;
-			System.out.println("Mutated");
-			return mutatedList;
+			Student s = listOrder.get(a);
+			if(s.getGradeLevel() == 12)
+				g12.add(s);
+			if(s.getGradeLevel() == 11)
+				g11.add(s);
+			if(s.getGradeLevel() == 10)
+				g10.add(s);
+			if(s.getGradeLevel() == 9)
+				g9.add(s);
 		}
-		else
+		studentsMutated = 0;
+		for(Student j: listOrder)
 		{
-			return listOrder;
+			double randomNum = Math.random();
+			if(randomNum < percentMutation)
+			{
+				j.setMutated(true);
+				studentsMutated++;
+				int grade = j.getGradeLevel();
+				if(grade == 9)
+				{
+					int studentPos = g9.indexOf(j);
+					int randomPos = (int)(Math.random()*g9.size())+0;
+					while(studentPos == randomPos)
+					{
+						randomPos = (int)(Math.random()*g9.size())+0;
+					}
+					Student temp = j;
+					g9.set(studentPos, g9.get(randomPos));
+					g9.set(randomPos, temp);
+				}
+				if(grade == 10)
+				{
+					int studentPos = g10.indexOf(j);
+					int randomPos = (int)(Math.random()*g10.size())+0;
+					while(studentPos == randomPos)
+					{
+						randomPos = (int)(Math.random()*g10.size())+0;
+					}
+					Student temp = j;
+					g10.set(studentPos, g10.get(randomPos));
+					g10.set(randomPos, temp);
+				}
+				if(grade == 11)
+				{
+					int studentPos = g11.indexOf(j);
+					int randomPos = (int)(Math.random()*g11.size())+0;
+					while(studentPos == randomPos)
+					{
+						randomPos = (int)(Math.random()*g11.size())+0;
+					}
+					Student temp = j;
+					g11.set(studentPos, g11.get(randomPos));
+					g11.set(randomPos, temp);
+				}
+				if(grade == 12)
+				{
+					int studentPos = g12.indexOf(j);
+					int randomPos = (int)(Math.random()*g12.size())+0;
+					while(studentPos == randomPos)
+					{
+						randomPos = (int)(Math.random()*g12.size())+0;
+					}
+					Student temp = j;
+					g12.set(studentPos, g12.get(randomPos));
+					g12.set(randomPos, temp);
+				}
+			}
 		}
+		percentMutationOverall = studentsMutated/(listOrder.size()*1.0);
+		avgPercentMutation += percentMutationOverall;
+		ArrayList<Student> mutatedList = new ArrayList<Student>();
+		for(int i = 0; i<g12.size(); i++)
+		{
+			mutatedList.add(g12.get(i));
+		}
+		for(int k = 0; k<g11.size(); k++)
+		{
+			mutatedList.add(g11.get(k));
+		}
+		for(int g = 0; g<g10.size(); g++)
+		{
+			mutatedList.add(g10.get(g));
+		}
+		for(int h = 0; h<g9.size(); h++)
+		{
+			mutatedList.add(g9.get(h));
+		}
+		return mutatedList;
 	}
 	
 	public static double percentMutation()
