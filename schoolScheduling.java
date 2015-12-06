@@ -230,7 +230,7 @@ public class schoolScheduling
 	static ArrayList<Order> orders = new ArrayList<Order>();
 	static int ordersMutated = 0;
 	static int numOrders = 0;
-	static int allOrdersFitnessSum = 0;
+	static double allOrdersFitnessSum = 0;
 	static double sumChances = 0.0;
 	static int studentsMutated = 0;
 	static double avgPercentMutation = 0.0;
@@ -359,8 +359,15 @@ public class schoolScheduling
 				Order order2 = generation.get(a);
 				order2.setSchedulingOrder(mutate(order2.getSchedulingOrder()));
 			}
+			allOrdersFitnessSum = changeFitnessSum(generation);
+			for(int b = 0; b<generation.size(); b++)
+			{
+				Order a = generation.get(b);
+				a.setChanceOfSurvival();
+			}
 			System.out.println(generation);
-			System.out.println("Average # Students Mutated per Order: " + avgPercentMutation/(generation.size() * 1.0));
+			System.out.println("Sum: " + getCosSum(generation));
+			//System.out.println("Average # Students Mutated per Order: " + avgPercentMutation/(generation.size() * 1.0));
 			previousGeneration = (ArrayList<Order>) (generation.clone());
 		}
 	}
@@ -369,6 +376,27 @@ public class schoolScheduling
 	{
 		return allOrdersFitnessSum * 1.0;
 	}
+	
+	public static double changeFitnessSum(ArrayList<Order> toChange)
+	{
+		double tempSum = 0.0;
+		for(int a = 0; a<toChange.size(); a++)
+		{
+			tempSum += toChange.get(a).getFitness();
+		}
+		return tempSum;
+	}
+	
+	public static double getCosSum(ArrayList<Order> toChange2)
+	{
+		double temp2Sum = 0.0;
+		for(int a = 0; a<toChange2.size(); a++)
+		{
+			temp2Sum += toChange2.get(a).getChanceOfSurvival();
+		}
+		return temp2Sum;
+	}	
+
 	public static boolean checkCoursePeriods(Subject a, int g)
 	{
 		for(int w = 0; w<coursePeriods[g].length; w++)
