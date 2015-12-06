@@ -181,7 +181,7 @@ class Order
 
 	public void setChanceOfSurvival()
 	{
-		chanceOfSurvival = (double)fitness/schoolScheduling.getOrdersFitnessSum();
+		chanceOfSurvival = fitness/schoolScheduling.getOrdersFitnessSum();
 	}
 
 	public double assignFitness()
@@ -478,7 +478,7 @@ public class schoolScheduling
 		{
 			double randomNumber = Math.random();
 			int position = Arrays.binarySearch(orderBoundaries, randomNumber);
-			int finalPosition = (position + 1) * -1;
+			int finalPosition = position >= 0 ? position : (position + 1) * -1;
 			nextGeneration.add(orderList1.get(finalPosition));
 		}
 		return nextGeneration;
@@ -487,99 +487,39 @@ public class schoolScheduling
 	public static ArrayList<Student> mutate(ArrayList<Student> listOrder)
 	{
 		double percentMutation = 0.01;
-		ArrayList<Student> g12 = new ArrayList<Student>();
-		ArrayList<Student> g11 = new ArrayList<Student>();
-		ArrayList<Student> g10 = new ArrayList<Student>();
-		ArrayList<Student> g9 = new ArrayList<Student>();
-		for(int a = 0; a<listOrder.size(); a++)
-		{
-			Student s = listOrder.get(a);
-			if(s.getGradeLevel() == 12)
-				g12.add(s);
-			if(s.getGradeLevel() == 11)
-				g11.add(s);
-			if(s.getGradeLevel() == 10)
-				g10.add(s);
-			if(s.getGradeLevel() == 9)
-				g9.add(s);
+		HashMap<Integer, ArrayList<Student>> grades = new HashMap<Integer, ArrayList<Student>>();
+		for (int grade=9; grade<=12; grade++) {
+			grades.put(grade, new ArrayList<Student>());
 		}
+
+		for(Student student: listOrder) {
+			grades.get(student.getGradeLevel()).add(student);
+		}
+
 		studentsMutated = 0;
-		for(Student j: listOrder)
+		for(Student student: listOrder)
 		{
 			double randomNum = Math.random();
 			if(randomNum < percentMutation)
 			{
-				j.setMutated(true);
+				student.setMutated(true);
 				studentsMutated++;
-				int grade = j.getGradeLevel();
-				if(grade == 9)
-				{
-					int studentPos = g9.indexOf(j);
-					int randomPos = (int)(Math.random()*g9.size())+0;
-					while(studentPos == randomPos)
-					{
-						randomPos = (int)(Math.random()*g9.size())+0;
-					}
-					Student temp = j;
-					g9.set(studentPos, g9.get(randomPos));
-					g9.set(randomPos, temp);
+				int grade = student.getGradeLevel();
+				ArrayList<Student> studentsInGrade = grades.get(grade);
+				int studentPos = studentsInGrade.indexOf(student);
+				int randomPos = (int)(Math.random() * studentsInGrade.size());
+				while (studentPos == randomPos) {
+					randomPos = (int)(Math.random() * studentsInGrade.size());
 				}
-				if(grade == 10)
-				{
-					int studentPos = g10.indexOf(j);
-					int randomPos = (int)(Math.random()*g10.size())+0;
-					while(studentPos == randomPos)
-					{
-						randomPos = (int)(Math.random()*g10.size())+0;
-					}
-					Student temp = j;
-					g10.set(studentPos, g10.get(randomPos));
-					g10.set(randomPos, temp);
-				}
-				if(grade == 11)
-				{
-					int studentPos = g11.indexOf(j);
-					int randomPos = (int)(Math.random()*g11.size())+0;
-					while(studentPos == randomPos)
-					{
-						randomPos = (int)(Math.random()*g11.size())+0;
-					}
-					Student temp = j;
-					g11.set(studentPos, g11.get(randomPos));
-					g11.set(randomPos, temp);
-				}
-				if(grade == 12)
-				{
-					int studentPos = g12.indexOf(j);
-					int randomPos = (int)(Math.random()*g12.size())+0;
-					while(studentPos == randomPos)
-					{
-						randomPos = (int)(Math.random()*g12.size())+0;
-					}
-					Student temp = j;
-					g12.set(studentPos, g12.get(randomPos));
-					g12.set(randomPos, temp);
-				}
+				studentsInGrade.set(studentPos, studentsInGrade.get(randomPos));
+				studentsInGrade.set(randomPos, student);
 			}
 		}
 		percentMutationOverall = studentsMutated/(listOrder.size()*1.0);
 		avgPercentMutation += percentMutationOverall;
 		ArrayList<Student> mutatedList = new ArrayList<Student>();
-		for(int i = 0; i<g12.size(); i++)
-		{
-			mutatedList.add(g12.get(i));
-		}
-		for(int k = 0; k<g11.size(); k++)
-		{
-			mutatedList.add(g11.get(k));
-		}
-		for(int g = 0; g<g10.size(); g++)
-		{
-			mutatedList.add(g10.get(g));
-		}
-		for(int h = 0; h<g9.size(); h++)
-		{
-			mutatedList.add(g9.get(h));
+		for (int grade=9; grade<=12; grade++) {
+			mutatedList.addAll(mutatedList.size(), grades.get(grade));
 		}
 		return mutatedList;
 	}
@@ -647,19 +587,19 @@ public class schoolScheduling
 			      schedule[period] = req; // set the period to the class
 			      Subject[] filledSchedule = findSchedule(requested, open, schedule, index + 1); // recursion
 			      if (bestSchedule == null){
-			      	bestSchedule = (Subject[]) (filledSchedule.clone());
+			      	bestSchedule = filledSchedule.clone();
 			      } else {
 			      	int bestCount = countNotNull(bestSchedule);
 			      	int myCount = countNotNull(filledSchedule);
 			      	if (myCount > bestCount) {
-			      		bestSchedule = (Subject[]) (filledSchedule.clone());
+			      		bestSchedule = filledSchedule.clone();
 			      	}
 			      }
 			      schedule[period] = null; // reset the period to null (after recursion)
 			    }
 			 }
 			 if (bestSchedule == null) { // no matches available for this period, skip the class
-			 	bestSchedule = (Subject[]) findSchedule(requested, open, schedule, index + 1);
+			 	bestSchedule = findSchedule(requested, open, schedule, index + 1);
 			 }
 			 return bestSchedule;
 		}
