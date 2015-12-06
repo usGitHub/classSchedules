@@ -361,6 +361,7 @@ public class schoolScheduling
 			}
 			System.out.println(generation);
 			System.out.println("Average # Students Mutated per Order: " + avgPercentMutation/(generation.size() * 1.0));
+			previousGeneration = (ArrayList<Order>) (generation.clone());
 		}
 	}
 
@@ -478,8 +479,8 @@ public class schoolScheduling
 		{
 			double randomNumber = Math.random();
 			int position = Arrays.binarySearch(orderBoundaries, randomNumber);
-			int finalPosition = position >= 0 ? position : (position + 1) * -1;
-			nextGeneration.add(orderList1.get(finalPosition));
+			int finalPosition = position >= 0 ? position : (position + 1) * -1; //? Exception in thread "main" java.lang.IndexOutOfBoundsException: Index: 100, Size: 100; Line 483, 356
+			nextGeneration.add(orderList1.get(finalPosition)); //?
 		}
 		return nextGeneration;
 	}
