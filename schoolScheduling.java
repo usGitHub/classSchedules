@@ -1,7 +1,7 @@
 import java.util.*;
 import java.io.*;
 
-class Student implements Comparator<Student>
+class Student implements Comparable<Student>
 {
 	private Subject[] classRequests;
 	private Subject[] assignedClasses;
@@ -21,16 +21,16 @@ class Student implements Comparator<Student>
 		mutated = false;
 	}
 
-	public int compare(Student s, Student s1)
+	public int compareTo(Student other)
 	{
-		return s1.gradeLevel - s.gradeLevel;
+		return gradeLevel - other.gradeLevel;
 	}
 
 	public void setMutated(boolean x)
 	{
 		mutated = x;
 	}
-	
+
 	public void setSchedule(Subject[] classes)
 	{
 		assignedClasses = classes;
@@ -133,7 +133,7 @@ class Subject
 	{
 		return name;
 	}
-	
+
 	public void setPeriodSize(int period, int size)
 	{
 		periodSize.put(period,size);
@@ -158,7 +158,7 @@ class Order
 		fitness = assignFitness();
 		chanceOfSurvival = 0;
 	}
-	
+
 	public void setSchedulingOrder(ArrayList<Student> y)
 	{
 		schedulingOrder = y;
@@ -168,23 +168,23 @@ class Order
 	{
 		return fitness;
 	}
-	
+
 	public double getChanceOfSurvival()
 	{
 		return chanceOfSurvival;
 	}
-	
+
 	public ArrayList<Student> getSchedulingOrder()
 	{
 		return schedulingOrder;
 	}
-	
+
 	public void setChanceOfSurvival()
 	{
 		chanceOfSurvival = (double)fitness/schoolScheduling.getOrdersFitnessSum();
 	}
 
-	public double assignFitness() 
+	public double assignFitness()
 	{
 		//schoolScheduling.resetCourses();
 		int errorsTotal = 0;
@@ -291,7 +291,7 @@ public class schoolScheduling
 			numStudents++;
 		}
 
-		Collections.sort(students, new Student());
+		Collections.sort(students);
 
 		for(int b = 0; b<students.size(); b++)
 		{
@@ -348,7 +348,7 @@ public class schoolScheduling
 		System.out.println(orders);
 		//System.out.println("Sum chances: " + sumChances);
 		//System.out.println("Percent Mutation: " + percentMutation());
-		
+
 		ArrayList<Order> previousGeneration = (ArrayList<Order>) (orders.clone());
 		for(int i = 0; i<200; i++)
 		{
@@ -414,7 +414,7 @@ public class schoolScheduling
 		}
 		return fittestOrder;
 	}
-	
+
 	public static void resetCourses() throws Exception
 	{
 		Scanner input = new Scanner(new File("courseData.txt"));
@@ -464,7 +464,7 @@ public class schoolScheduling
 		}
 		//System.out.println("Changed");
 	}
-	
+
 	public static ArrayList<Order> reproduce(ArrayList<Order> orderList1)
 	{
 		ArrayList<Order> nextGeneration = new ArrayList<Order>();
@@ -483,7 +483,7 @@ public class schoolScheduling
 		}
 		return nextGeneration;
 	}
-	
+
 	public static ArrayList<Student> mutate(ArrayList<Student> listOrder)
 	{
 		double percentMutation = 0.01;
@@ -583,7 +583,7 @@ public class schoolScheduling
 		}
 		return mutatedList;
 	}
-	
+
 	public static double percentMutation()
 	{
 		double mutationPercent = (ordersMutated/(numOrders*1.0)) * 100.0;
