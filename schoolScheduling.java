@@ -575,8 +575,7 @@ public class schoolScheduling
 	 	} else {
 			Subject[] bestSchedule = null;
 			Subject req = requested[index];
-		  // find all classes that match the requested class
-		  // in open (I'm skipping that in the pseudocode)
+		  	// find all classes that match the requested class
 		  	ArrayList<Integer> matching = match(req, open);
 
 		  	for(int m: matching)
