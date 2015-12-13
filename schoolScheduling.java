@@ -33,7 +33,7 @@ class Student implements Comparable<Student>
 
 	public void setSchedule(Subject[] classes)
 	{
-		assignedClasses = classes;
+		assignedClasses = (Subject[] ) classes.clone();
 	}
 
 	public int getId()
@@ -150,7 +150,7 @@ class Order
 	private ArrayList<Student> schedulingOrder;
 	private double fitness;
 	private double chanceOfSurvival;
-
+	
 	public Order(ArrayList<Student> x) throws Exception
 	{
 		schoolScheduling.resetCourses();
@@ -158,10 +158,40 @@ class Order
 		fitness = assignFitness();
 		chanceOfSurvival = 0;
 	}
+	
+	public Order(Order b) throws Exception
+	{
+		//schoolScheduling.resetCourses();
+		schedulingOrder = (ArrayList<Student>) (b.getSchedulingOrder().clone());
+		fitness = b.getFitness();
+		chanceOfSurvival = b.getChanceOfSurvival();
+	}
+	
+	/*public Order copy()
+	{
+        Order copy1 = new Order();
+        copy1.setSchedulingOrder(((ArrayList<Student>) (schedulingOrder.clone())));
+        copy1.setFitness(copy1.assignFitness());
+        //System.out.println(fitness);
+        copy1.setChanceOfSurvival();
+        //copy1.chanceOfSurvival = chanceOfSurvival;
+        //System.out.print(chanceOfSurvival + " " + fitness);
+        return copy1;
+	}*/ 
 
 	public void setSchedulingOrder(ArrayList<Student> y)
 	{
 		schedulingOrder = y;
+	}
+	
+	public void setFitness() throws Exception
+	{
+		fitness = assignFitness();
+	}
+	
+	public void setChanceOfSurvival(double cos)
+	{
+		chanceOfSurvival = cos;
 	}
 
 	public double getFitness()
@@ -184,19 +214,23 @@ class Order
 		chanceOfSurvival = fitness/schoolScheduling.getOrdersFitnessSum();
 	}
 
-	public double assignFitness()
+	public double assignFitness() throws Exception
 	{
-		//schoolScheduling.resetCourses();
+		schoolScheduling.resetCourses();
 		int errorsTotal = 0;
 		int scheduleNumWithErrors = 0;
 		for(int a = 0; a<schedulingOrder.size(); a++)
 		{
 			Student s = schedulingOrder.get(a);
+			//if(a == 1)
+				//System.out.println(Arrays.toString(s.getSchedule()));
 			//System.out.println(a);
 			Subject[] bestSchedule = schoolScheduling.findSchedule(
 					s.getRequests(), schoolScheduling.findOpenClasses(), new Subject[4], 0);
-			// System.out.println(a + ' ' + Arrays.toString(bestSchedule));
+			//System.out.println(' ' + Arrays.toString(bestSchedule));
 			s.setSchedule(bestSchedule);
+			//if(a == 1)
+				//System.out.println(Arrays.toString(s.getSchedule()) + "\n");
 			schoolScheduling.changeNumSpotsPerClass(s.getSchedule());
 			schoolScheduling.changeCoursePeriods();
 			errorsTotal += s.getNumErrors();
@@ -359,11 +393,16 @@ public class schoolScheduling
 				Order order2 = generation.get(a);
 				order2.setSchedulingOrder(mutate(order2.getSchedulingOrder()));
 			}
+			for(int k = 0; k<generation.size(); k++)
+			{
+				Order j = generation.get(k);
+				j.setFitness();
+			}
 			allOrdersFitnessSum = changeFitnessSum(generation);
 			for(int b = 0; b<generation.size(); b++)
 			{
-				Order a = generation.get(b);
-				a.setChanceOfSurvival();
+				Order e = generation.get(b);
+				e.setChanceOfSurvival();
 			}
 			System.out.println(generation);
 			System.out.println("Sum: " + getCosSum(generation));
@@ -494,7 +533,7 @@ public class schoolScheduling
 		//System.out.println("Changed");
 	}
 
-	public static ArrayList<Order> reproduce(ArrayList<Order> orderList1)
+	public static ArrayList<Order> reproduce(ArrayList<Order> orderList1) throws Exception
 	{
 		ArrayList<Order> nextGeneration = new ArrayList<Order>();
 		double[] orderBoundaries = new double[orderList1.size()];
@@ -508,7 +547,7 @@ public class schoolScheduling
 			double randomNumber = Math.random();
 			int position = Arrays.binarySearch(orderBoundaries, randomNumber);
 			int finalPosition = position >= 0 ? position : (position + 1) * -1; //? Exception in thread "main" java.lang.IndexOutOfBoundsException: Index: 100, Size: 100; Line 483, 356
-			nextGeneration.add(orderList1.get(finalPosition)); //?
+			nextGeneration.add(new Order(orderList1.get(finalPosition))); //? 
 		}
 		return nextGeneration;
 	}
