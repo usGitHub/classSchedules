@@ -159,18 +159,6 @@ class Order
 		chanceOfSurvival = b.getChanceOfSurvival();
 	}
 
-	/*public Order copy()
-	{
-        Order copy1 = new Order();
-        copy1.setSchedulingOrder(((ArrayList<Student>) (schedulingOrder.clone())));
-        copy1.setFitness(copy1.assignFitness());
-        //System.out.println(fitness);
-        copy1.setChanceOfSurvival();
-        //copy1.chanceOfSurvival = chanceOfSurvival;
-        //System.out.print(chanceOfSurvival + " " + fitness);
-        return copy1;
-	}*/
-
 	public void setSchedulingOrder(ArrayList<Student> y)
 	{
 		schedulingOrder = y;
