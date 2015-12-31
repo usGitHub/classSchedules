@@ -7,18 +7,13 @@ class Student implements Comparable<Student>
 	private Subject[] assignedClasses;
 	private int idNumber;
 	private int gradeLevel;
-	private boolean mutated;
-
-	public Student()
-	{}
 
 	public Student(Subject[] requests, int num, int g)
 	{
 		classRequests = requests;
-		assignedClasses = new Subject[4];
+		assignedClasses = new Subject[requests.length];
 		idNumber = num;
 		gradeLevel = g;
-		mutated = false;
 	}
 
 	public int compareTo(Student other)
@@ -26,14 +21,11 @@ class Student implements Comparable<Student>
 		return gradeLevel - other.gradeLevel;
 	}
 
-	public void setMutated(boolean x)
-	{
-		mutated = x;
-	}
-
 	public void setSchedule(Subject[] classes)
 	{
-		assignedClasses = (Subject[] ) classes.clone();
+		for (int i=0; i<classes.length && i<assignedClasses.length; i++) {
+			assignedClasses[i] = classes[i];
+		}
 	}
 
 	public int getId()
@@ -150,7 +142,7 @@ class Order
 	private ArrayList<Student> schedulingOrder;
 	private double fitness;
 	private double chanceOfSurvival;
-	
+
 	public Order(ArrayList<Student> x) throws Exception
 	{
 		schoolScheduling.resetCourses();
@@ -158,7 +150,7 @@ class Order
 		fitness = assignFitness();
 		chanceOfSurvival = 0;
 	}
-	
+
 	public Order(Order b) throws Exception
 	{
 		//schoolScheduling.resetCourses();
@@ -166,7 +158,7 @@ class Order
 		fitness = b.getFitness();
 		chanceOfSurvival = b.getChanceOfSurvival();
 	}
-	
+
 	/*public Order copy()
 	{
         Order copy1 = new Order();
@@ -177,18 +169,18 @@ class Order
         //copy1.chanceOfSurvival = chanceOfSurvival;
         //System.out.print(chanceOfSurvival + " " + fitness);
         return copy1;
-	}*/ 
+	}*/
 
 	public void setSchedulingOrder(ArrayList<Student> y)
 	{
 		schedulingOrder = y;
 	}
-	
+
 	public void setFitness() throws Exception
 	{
 		fitness = assignFitness();
 	}
-	
+
 	public void setChanceOfSurvival(double cos)
 	{
 		chanceOfSurvival = cos;
@@ -415,7 +407,7 @@ public class schoolScheduling
 	{
 		return allOrdersFitnessSum * 1.0;
 	}
-	
+
 	public static double changeFitnessSum(ArrayList<Order> toChange)
 	{
 		double tempSum = 0.0;
@@ -425,7 +417,7 @@ public class schoolScheduling
 		}
 		return tempSum;
 	}
-	
+
 	public static double getCosSum(ArrayList<Order> toChange2)
 	{
 		double temp2Sum = 0.0;
@@ -434,7 +426,7 @@ public class schoolScheduling
 			temp2Sum += toChange2.get(a).getChanceOfSurvival();
 		}
 		return temp2Sum;
-	}	
+	}
 
 	public static boolean checkCoursePeriods(Subject a, int g)
 	{
@@ -547,7 +539,7 @@ public class schoolScheduling
 			double randomNumber = Math.random();
 			int position = Arrays.binarySearch(orderBoundaries, randomNumber);
 			int finalPosition = position >= 0 ? position : (position + 1) * -1; //? Exception in thread "main" java.lang.IndexOutOfBoundsException: Index: 100, Size: 100; Line 483, 356
-			nextGeneration.add(new Order(orderList1.get(finalPosition))); //? 
+			nextGeneration.add(new Order(orderList1.get(finalPosition))); //?
 		}
 		return nextGeneration;
 	}
@@ -570,7 +562,6 @@ public class schoolScheduling
 			double randomNum = Math.random();
 			if(randomNum < percentMutation)
 			{
-				student.setMutated(true);
 				studentsMutated++;
 				int grade = student.getGradeLevel();
 				ArrayList<Student> studentsInGrade = grades.get(grade);
