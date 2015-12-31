@@ -80,24 +80,22 @@ class Subject
 	private String name;
 	private int id;
 	private HashMap<Integer,Integer> periodSize;
+	private HashMap<Integer,Integer> emptySpots;
 
 	public Subject(String s, int n, String[] x)
 	{
 		name = s;
 		id = n;
-		periodSize = new HashMap<>();
+		periodSize = new HashMap<Integer, Integer>();
+		emptySpots = new HashMap<Integer, Integer>();
 		for(int a = 0; a<x.length; a++)
 		{
 			String[] nums = x[a].split(";");
-			int period = Integer.parseInt(nums[0]); //Can you declare these 3 variables inside the for loop? Because it works
+			int period = Integer.parseInt(nums[0]);
 			int studentNum = Integer.parseInt(nums[1]);
 			periodSize.put(period,studentNum);
+			emptySpots.put(period,studentNum);
 		}
-	}
-
-	public HashMap<Integer,Integer> getPeriodMap()
-	{
-		return periodSize;
 	}
 
 	public int getIdNum()
@@ -105,20 +103,21 @@ class Subject
 		return id;
 	}
 
-	public int getPeriodSize(int y)
+	public int getEmptySpots(int period)
 	{
-		return periodSize.get(y);
+		return emptySpots.get(period);
 	}
 
-	public void changeNumSpots(int n)
+	public void decrementEmptySpots(int period)
 	{
-		if(periodSize.get(n+1)>0)
-			periodSize.put(n+1,periodSize.get(n+1)-1);
+		int emptySpotsForPeriod = emptySpots.get(period+1);
+		if(emptySpotsForPeriod > 0)
+			emptySpots.put(period+1, emptySpotsForPeriod-1);
 	}
 
-	public boolean spotsAvailable(int e)
+	public boolean spotsAvailable(int period)
 	{
-		return periodSize.get(e+1)!=0;
+		return periodSize.get(period+1)!=0;
 	}
 
 	public String getName()
@@ -126,9 +125,10 @@ class Subject
 		return name;
 	}
 
-	public void setPeriodSize(int period, int size)
-	{
-		periodSize.put(period,size);
+	public void resetEmptySpots() {
+		for (int period: periodSize.keySet()) {
+			emptySpots.put(period, periodSize.get(period));
+		}
 	}
 
 	public String toString()
@@ -280,7 +280,7 @@ public class schoolScheduling
 			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
 				for(int h = 0; h<courses.size(); h++)
 				{
-						if(courses.get(h).getPeriodSize(k)>0)
+						if(courses.get(h).getEmptySpots(k)>0)
 							availablePeriods.add(courses.get(h));
 				}
 				Subject[] tempPeriods = new Subject[availablePeriods.size()];
@@ -477,18 +477,8 @@ public class schoolScheduling
 
 	public static void resetCourses() throws Exception
 	{
-		Scanner input = new Scanner(new File("courseData.txt"));
-		for(int a = 0; a<courses.size(); a++)
-		{
-			Subject course = courses.get(a);
-			String str = input.nextLine();
-			String[] arr = str.split(",");
-			String[] arr2 = arr[2].split("-");
-			for(int b = 0; b<arr2.length; b++)
-			{
-				String[] periodSize = arr2[b].split(";");
-				course.setPeriodSize(Integer.parseInt(periodSize[0]), Integer.parseInt(periodSize[1]));
-			}
+		for(Subject course: courses) {
+			course.resetEmptySpots();
 		}
 		changeCoursePeriods();
 	}
@@ -500,7 +490,7 @@ public class schoolScheduling
 			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
 				for(int h = 0; h<courses.size(); h++)
 				{
-						if(courses.get(h).getPeriodSize(k)>0)
+						if(courses.get(h).getEmptySpots(k)>0)
 							availablePeriods.add(courses.get(h));
 				}
 				Subject[] tempPeriods = new Subject[availablePeriods.size()];
@@ -519,7 +509,7 @@ public class schoolScheduling
 		{
 			Subject course = schedule1[a];
 			if (course != null) {
-				course.changeNumSpots(a);
+				course.decrementEmptySpots(a);
 			}
 		}
 		//System.out.println("Changed");
