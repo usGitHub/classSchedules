@@ -117,7 +117,18 @@ class Subject
 
 	public boolean spotsAvailable(int period)
 	{
-		return periodSize.get(period+1)!=0;
+		return emptySpots.get(period+1) != 0;
+	}
+
+	public ArrayList<Integer> getOpenPeriods() {
+		ArrayList<Integer> openPeriods = new ArrayList<Integer>();
+		for (int period: emptySpots.keySet()) {
+			if (this.spotsAvailable(period)) {
+				openPeriods.add(period);
+			}
+		}
+
+		return openPeriods;
 	}
 
 	public String getName()
@@ -212,7 +223,6 @@ class Order
 			//if(a == 1)
 				//System.out.println(Arrays.toString(s.getSchedule()) + "\n");
 			schoolScheduling.changeNumSpotsPerClass(s.getSchedule());
-			schoolScheduling.changeCoursePeriods();
 			errorsTotal += s.getNumErrors();
 			if(s.getNumErrors()>0)
 				scheduleNumWithErrors++;
@@ -231,8 +241,7 @@ class Order
 
 public class schoolScheduling
 {
-	static ArrayList<Subject> courses = new ArrayList<Subject>(); //Should I make this and coursePeriods static so I can access them in the scheduler method?
-	static Subject[][] coursePeriods = new Subject[4][courses.size()];	//Should I change how I declared the row or column number?
+	static ArrayList<Subject> courses = new ArrayList<Subject>();
 	static ArrayList<Student> students = new ArrayList<Student>();
 	static int totalErrors = 0;
 	static int numStudents = 0;
@@ -261,22 +270,6 @@ public class schoolScheduling
 			String[] courseSize = courseInfo[2].split("-");
 			Subject newCourse = new Subject(courseName, courseId, courseSize);
 			courses.add(newCourse);
-		}
-
-		for(int k = 1; k<=coursePeriods.length; k++)
-		{
-			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
-				for(int h = 0; h<courses.size(); h++)
-				{
-						if(courses.get(h).getEmptySpots(k)>0)
-							availablePeriods.add(courses.get(h));
-				}
-				Subject[] tempPeriods = new Subject[availablePeriods.size()];
-				for(int t = 0; t<tempPeriods.length; t++)
-				{
-					tempPeriods[t] = availablePeriods.get(t);
-				}
-			coursePeriods[k-1] = tempPeriods;
 		}
 
 		Scanner input = new Scanner(new File("studentInfoData.txt"));
@@ -391,9 +384,29 @@ public class schoolScheduling
 		}
 	}
 
-	public static double getOrdersFitnessSum()
+	public static double getOrdersFitnessSum(ArrayList<Order> ors)
 	{
-		return allOrdersFitnessSum * 1.0;
+		double sum = 0.0;
+		for(Order e: ors)
+		{
+			sum += e.getFitness();
+		}
+		return sum;
+	}
+
+	public static double averageFitness(ArrayList<Order> or)
+	{
+		return getOrdersFitnessSum(or)/or.size();
+	}
+
+	public static double getCosSum(ArrayList<Order> or)
+	{
+		double sum = 0.0;
+		for(Order o: or)
+		{
+			sum += o.getChanceOfSurvival();
+		}
+		return sum;
 	}
 
 	public static double changeFitnessSum(ArrayList<Order> toChange)
@@ -404,24 +417,6 @@ public class schoolScheduling
 			tempSum += toChange.get(a).getFitness();
 		}
 		return tempSum;
-	}
-
-	public static double getCosSum(ArrayList<Order> toChange2)
-	{
-		double temp2Sum = 0.0;
-		for(int a = 0; a<toChange2.size(); a++)
-		{
-			temp2Sum += toChange2.get(a).getChanceOfSurvival();
-		}
-		return temp2Sum;
-	}
-
-	public static boolean checkCoursePeriods(Subject a, int g)
-	{
-		for(int w = 0; w<coursePeriods[g].length; w++)
-			if(coursePeriods[g][w] == a)
-				return true;
-		return false;
 	}
 
 	public static boolean scheduleNotContainsClass(Subject s, Student x)
@@ -463,32 +458,11 @@ public class schoolScheduling
 		return fittestOrder;
 	}
 
-	public static void resetCourses() throws Exception
+	public static void resetCourses()
 	{
 		for(Subject course: courses) {
 			course.resetEmptySpots();
 		}
-		changeCoursePeriods();
-	}
-
-	public static void changeCoursePeriods()
-	{
-		for(int k = 1; k<=coursePeriods.length; k++)
-		{
-			ArrayList<Subject> availablePeriods = new ArrayList<Subject>();
-				for(int h = 0; h<courses.size(); h++)
-				{
-						if(courses.get(h).getEmptySpots(k)>0)
-							availablePeriods.add(courses.get(h));
-				}
-				Subject[] tempPeriods = new Subject[availablePeriods.size()];
-				for(int t = 0; t<tempPeriods.length; t++)
-				{
-					tempPeriods[t] = availablePeriods.get(t);
-				}
-			coursePeriods[k-1] = tempPeriods;
-		}
-		//System.out.println("ChangedCoursePeriods");
 	}
 
 	public static void changeNumSpotsPerClass(Subject[] schedule1)
@@ -570,11 +544,9 @@ public class schoolScheduling
 	public static ArrayList<String> findOpenClasses()
 	{
 		ArrayList<String> open = new ArrayList<String>();
-		for(int r = 0; r<coursePeriods.length; r++)
-		{
-			for(int c = 0; c<coursePeriods[r].length; c++)
-			{
-				String namePlusPeriod = coursePeriods[r][c].getName() + ";" + (r+1);
+		for (Subject course: courses) {
+			for (int openPeriod: course.getOpenPeriods()) {
+				String namePlusPeriod = course.getName() + ";" + (openPeriod+1);
 				open.add(namePlusPeriod);
 			}
 		}
