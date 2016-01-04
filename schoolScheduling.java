@@ -189,7 +189,7 @@ public class schoolScheduling
 			}
 		}
 
-		return 1.0 - ((double)scheduleNumWithErrors/schedules.size());
+		return Math.pow(1.0 -((double)scheduleNumWithErrors/schedules.size()), 3);
 	}
 
 	public static HashMap<Integer, ArrayList<Student>> separateStudentsByGrade(ArrayList<Student> students)
@@ -250,7 +250,7 @@ public class schoolScheduling
 
 		Collections.sort(students);
 		HashMap<Integer, ArrayList<Student>> gradeToStudents = separateStudentsByGrade(students);
-		for(int x = 0; x<100; x++)
+		for(int x = 0; x<1000; x++)
 		{
 			ArrayList<Student> orderList = new ArrayList<Student>();
 			for(int grade = 12; grade >= 9; grade--)
@@ -268,16 +268,17 @@ public class schoolScheduling
 			orders.add(order);
 		}
 
-		System.out.println("FIRST GENERATION: ");
-		System.out.println(orders);
+		System.out.println("0 generation: ");
+		System.out.println(getOrdersFitnessSum(orders) / orders.size());
 
 		ArrayList<Order> previousGeneration = orders;
 
-		for(int i = 0; i<200; i++)
+		for(int i = 0; i<400; i++)
 		{
-			System.out.println("NEW GENERATION: ");
+
 			ArrayList<Order> generation = reproduce(previousGeneration, courses);
-			System.out.println(generation);
+			System.out.println((i+2) + " generation: ");
+			System.out.println(getOrdersFitnessSum(generation) / generation.size());
 			previousGeneration = generation;
 		}
 	}
@@ -294,6 +295,7 @@ public class schoolScheduling
 
 	public static ArrayList<Order> reproduce(ArrayList<Order> orders, ArrayList<Subject> courses)
 	{
+		int count = 0;
 		double fitnessSum = getOrdersFitnessSum(orders);
 		ArrayList<Order> nextGeneration = new ArrayList<Order>();
 		double[] orderBoundaries = new double[orders.size()];
@@ -316,6 +318,7 @@ public class schoolScheduling
 			boolean mutated = !mutatedOrder.equals(originalOrder);
 			Order child = new Order(mutatedOrder);
 			if (mutated) {
+				count++;
 				child.setBestSchedule(findBestSchedule(child, courses));
 				child.setFitness(findFitness(child.getBestSchedule()));
 			} else {
@@ -325,13 +328,12 @@ public class schoolScheduling
 
 			nextGeneration.add(child);
 		}
-
 		return nextGeneration;
 	}
 
 	public static ArrayList<Student> mutate(ArrayList<Student> listOrder)
 	{
-		double percentMutation = 0.01;
+		double percentMutation = 0.001;
 		HashMap<Integer, ArrayList<Student>> grades = separateStudentsByGrade(listOrder);
 
 		for(Student student: listOrder)
