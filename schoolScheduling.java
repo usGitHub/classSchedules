@@ -153,29 +153,98 @@ class Order
 	}
 }
 
+class DFSNode {
+	DFSNode parent;
+	Subject[] schedule;
+	int errors;
+}
+
 public class schoolScheduling
 {
-	public static ArrayList<Subject[]> findBestSchedule(Order order, ArrayList<Subject> courses)
-	{
+
+	public static void resetCourses(ArrayList<Subject> courses) {
 		for(Subject course: courses) {
 			course.resetEmptySpots();
 		}
-		ArrayList<Subject[]> schedules = new ArrayList<Subject[]>();
-		for (Student s: order.getSchedulingOrder()) {
-			Subject[] requested = s.getRequests();
-			Subject[] schedule = schoolScheduling.findSchedule(
-					requested, findOpenClasses(courses), new Subject[requested.length], 0);
-			for(int a = 0; a<schedule.length; a++)
-			{
-				Subject course = schedule[a];
-				if (course != null) {
-					course.decrementEmptySpots(a);
-				}
-			}
-			schedules.add(schedule);
+	}
+
+	public static ArrayList<Subject[]> findBestSchedule(Order order, ArrayList<Subject> courses)
+	{
+
+		Queue<DFSNode> previousNodes = new LinkedList<DFSNode>();
+		ArrayList<Student> schedulingOrder = order.getSchedulingOrder();
+		int depth = 0;
+		Student currentStudent = schedulingOrder.get(depth++);
+		Subject[] requested = currentStudent.getRequests();
+		resetCourses(courses);
+		ArrayList<Subject[]> possibleSchedules = findSchedule(requested, findOpenClasses(courses));
+		for (Subject[] possible: possibleSchedules) {
+			DFSNode current = new DFSNode();
+			current.schedule = possible;
+			current.errors = possible.length - countNotNull(possible);
+			previousNodes.add(current);
 		}
 
-		return schedules;
+		List<DFSNode> futureNodes = new LinkedList<DFSNode>();
+		while (depth < schedulingOrder.size()) {
+			currentStudent = schedulingOrder.get(depth++);
+			requested = currentStudent.getRequests();
+			int minErrors = -1;
+			while (previousNodes.size() > 0) {
+				DFSNode parent = previousNodes.remove();
+				resetCourses(courses);
+				DFSNode root = parent;
+				while(root != null) {
+					int period = 0;
+					for (Subject course: root.schedule) {
+						if (course != null) {
+							course.decrementEmptySpots(period);
+						}
+						period++;
+					}
+					root = root.parent;
+				}
+				possibleSchedules = findSchedule(requested, findOpenClasses(courses));
+				for (Subject[] possible: possibleSchedules) {
+					DFSNode current = new DFSNode();
+					current.parent = parent;
+					current.schedule = possible;
+					current.errors = possible.length - countNotNull(possible) + parent.errors;
+					if (minErrors == -1 || current.errors == minErrors) {
+						minErrors = current.errors;
+						futureNodes.add(current);
+					} else if (current.errors < minErrors) {
+						minErrors = current.errors;
+						futureNodes.clear();
+						futureNodes.add(current);
+					}
+				}
+			}
+
+			if (futureNodes.size() > 50) {
+				Collections.shuffle(futureNodes);
+				futureNodes = futureNodes.subList(0, 50);
+			}
+
+			while (futureNodes.size() > 0) {
+				previousNodes.add(futureNodes.remove(0));
+			}
+		}
+
+		DFSNode best = previousNodes.remove();
+		DFSNode root = best;
+		Stack<Subject[]> bestScheduleStack = new Stack<Subject[]>();
+		while (root != null) {
+			bestScheduleStack.push(root.schedule);
+			root = root.parent;
+		}
+
+		ArrayList<Subject[]> bestSchedule = new ArrayList<Subject[]>();
+		while (bestScheduleStack.size() > 0) {
+			bestSchedule.add(bestScheduleStack.pop());
+		}
+
+		return bestSchedule;
 	}
 
 	public static double findFitness(ArrayList<Subject[]> schedules) {
@@ -189,7 +258,10 @@ public class schoolScheduling
 			}
 		}
 
-		return Math.pow(1.0 -((double)scheduleNumWithErrors/schedules.size()), 3);
+		double errorsTotalFitness = 1.0 - (double)errorsTotal / (schedules.size() * schedules.get(0).length);
+		double schedulesFitness = 1.0 - (double)scheduleNumWithErrors / schedules.size();
+
+		return Math.pow(errorsTotalFitness * schedulesFitness, 3);
 	}
 
 	public static HashMap<Integer, ArrayList<Student>> separateStudentsByGrade(ArrayList<Student> students)
@@ -250,7 +322,7 @@ public class schoolScheduling
 
 		Collections.sort(students);
 		HashMap<Integer, ArrayList<Student>> gradeToStudents = separateStudentsByGrade(students);
-		for(int x = 0; x<1000; x++)
+		for(int x = 0; x<10; x++)
 		{
 			ArrayList<Student> orderList = new ArrayList<Student>();
 			for(int grade = 12; grade >= 9; grade--)
@@ -275,12 +347,25 @@ public class schoolScheduling
 
 		for(int i = 0; i<400; i++)
 		{
-
 			ArrayList<Order> generation = reproduce(previousGeneration, courses);
 			System.out.println((i+2) + " generation: ");
 			System.out.println(getOrdersFitnessSum(generation) / generation.size());
 			previousGeneration = generation;
 		}
+
+		double maxFitness = 0;
+		Order bestOrder = null;
+		for (Order finalOrder: previousGeneration) {
+			if (finalOrder.getFitness() > maxFitness) {
+				maxFitness = finalOrder.getFitness();
+				bestOrder = finalOrder;
+			}
+		}
+
+		for (Subject[] schedule: bestOrder.getBestSchedule()) {
+			System.out.println(Arrays.toString(schedule));
+		}
+		System.out.println(maxFitness);
 	}
 
 	public static double getOrdersFitnessSum(ArrayList<Order> ors)
@@ -394,39 +479,46 @@ public class schoolScheduling
 		return count;
 	}
 
-	public static Subject[] findSchedule(Subject[] requested, ArrayList<String> open, Subject[] schedule, int index){
-	 	if(index == requested.length) {
-	 		//System.out.println(Arrays.toString(schedule));
-	 		return schedule;
-	 	} else {
-			Subject[] bestSchedule = null;
-			Subject req = requested[index];
-		  	// find all classes that match the requested class
-		  	ArrayList<Integer> matching = match(req, open);
+	public static ArrayList<Subject[]> findSchedule(Subject[] requested, ArrayList<String> open) {
+		ArrayList<Subject[]> bestSchedules = new ArrayList<Subject[]>();
+		Subject[] currentSchedule = new Subject[requested.length];
+		_findSchedule(requested, open, currentSchedule, 0, bestSchedules);
+		return bestSchedules;
+	}
 
-		  	for(int m: matching)
-		  	{
-		    	int period = m - 1; //-1 because period 1 is arr[0]
-		    	if (schedule[period] == null) // check if period is available in schedule
-		    	{
-			      schedule[period] = req; // set the period to the class
-			      Subject[] filledSchedule = findSchedule(requested, open, schedule, index + 1); // recursion
-			      if (bestSchedule == null){
-			      	bestSchedule = filledSchedule.clone();
-			      } else {
-			      	int bestCount = countNotNull(bestSchedule);
-			      	int myCount = countNotNull(filledSchedule);
-			      	if (myCount > bestCount) {
-			      		bestSchedule = filledSchedule.clone();
-			      	}
-			      }
-			      schedule[period] = null; // reset the period to null (after recursion)
-			    }
-			 }
-			 if (bestSchedule == null) { // no matches available for this period, skip the class
-			 	bestSchedule = findSchedule(requested, open, schedule, index + 1);
-			 }
-			 return bestSchedule;
+	public static void _findSchedule(Subject[] requested, ArrayList<String> open, Subject[] schedule, int index, ArrayList<Subject[]> bestSchedules){
+	 	if(index == requested.length) {
+	 		if (bestSchedules.size() == 0) {
+	 			bestSchedules.add(schedule.clone());
+	 		} else {
+	 			int bestCount = countNotNull(bestSchedules.get(0));
+	 			int myCount = countNotNull(schedule);
+	 			if (myCount == bestCount) {
+	 				bestSchedules.add(schedule.clone());
+	 			} else if (myCount > bestCount) {
+	 				bestSchedules.clear();
+	 				bestSchedules.add(schedule.clone());
+	 			}
+	 		}
+	 	} else {
+			Subject req = requested[index];
+	  	// find all classes that match the requested class
+	  	ArrayList<Integer> matching = match(req, open);
+	  	boolean periodsMatched = false;
+  		for(int m: matching) {
+	    	int period = m - 1; //-1 because period 1 is arr[0]
+	    	if (schedule[period] == null) {
+	    		periodsMatched = true;
+		      schedule[period] = req; // set the period to the class
+		      _findSchedule(requested, open, schedule, index + 1, bestSchedules); // recursion
+		      schedule[period] = null; // reset the period to null (after recursion)
+		    }
+		  }
+
+			if (!periodsMatched) {
+				_findSchedule(requested, open, schedule, index + 1, bestSchedules);
+			}
+
 		}
 
 	}
